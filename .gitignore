@@ -1,0 +1,6 @@
+# precompiled files
+lib/.precomp
+
+# IntelliJ project settings
+.idea
+*.iml
