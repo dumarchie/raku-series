@@ -4,3 +4,6 @@ lib/.precomp
 # IntelliJ project settings
 .idea
 *.iml
+
+# benchmark log
+benchmark/runs.log

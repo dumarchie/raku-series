@@ -1,6 +1,15 @@
 class Series {
     has Mu $.value is required;
     has Series $.next;
+    method !SET-SELF(Mu \value, \next) {
+        $!value := value;
+        $!next  := next;
+        self;
+    }
+
+    multi method new(Mu :$value!, Series :$next --> Series:D) {
+        self.CREATE!SET-SELF($value, $next);
+    }
 }
 
 =begin pod
@@ -20,5 +29,16 @@ A C<Series> is a purely functional B<linked list>, a recursive data structure
 that consists of nodes which link a I<value> to the I<next> node. The first node
 represents the whole series, as all values can be accessed by repeatedly
 following the link to the next node.
+
+=head1 METHODS
+
+=head2 method new
+
+Defined as:
+
+    multi method new(Mu :$value!, Series :$next --> Series:D)
+
+Returns a new C<Series> node that links the provided value to the C<$next>
+C<Series>.
 
 =end pod

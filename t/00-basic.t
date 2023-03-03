@@ -3,12 +3,12 @@ use Test;
 use lib 'lib';
 use Series;
 
-subtest 'default constructor', {
+subtest 'named argument constructor', {
     # assert that the constructor requires a value
     my Series $node;
     diag 'my Series $node';
     throws-like { $node .= new }, X::Attribute::Required, name => '$!value',
-      'Series.new requires a value';
+      'The :value argument is required';
 
     # assert that the constructor accepts a Mu "value"
     my Mu $value;
@@ -36,7 +36,7 @@ subtest 'default constructor', {
 
         # assert that the "next" argument must be a Series
         throws-like { $node.new(:$value, :$next) }, X::TypeCheck::Assignment,
-          'The "next" argument must be a Series';
+          'The :next argument must be of type Series';
     };
 };
 
