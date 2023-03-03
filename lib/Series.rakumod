@@ -8,7 +8,7 @@ class Series {
     }
 
     multi method new(Mu :$value!, Series :$next --> Series:D) {
-        self.CREATE!SET-SELF($value, $next);
+        self.CREATE!SET-SELF($value<>, $next);
     }
 }
 
@@ -26,9 +26,10 @@ Series - Purely functional sequences
     }
 
 A C<Series> is a purely functional B<linked list>, a recursive data structure
-that consists of nodes which link a I<value> to the I<next> node. The first node
+consisting of nodes that link a I<value> to the I<next> node. The first node
 represents the whole series, as all values can be accessed by repeatedly
-following the link to the next node.
+following the link to the next node. The final node links to the C<Series> type
+object that represents the empty series.
 
 =head1 METHODS
 
@@ -38,7 +39,7 @@ Defined as:
 
     multi method new(Mu :$value!, Series :$next --> Series:D)
 
-Returns a new C<Series> node that links the provided value to the C<$next>
-C<Series>.
+Constructs a C<Series> that links the decontainerized C<$value> to the
+C<$next> series.
 
 =end pod
