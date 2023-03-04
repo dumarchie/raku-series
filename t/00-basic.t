@@ -35,7 +35,7 @@ subtest 'named argument constructor', {
         cmp-ok $node2.next, '=:=', $node.self, '$node2.next';
 
         # assert that the "next" argument must be a Series
-        throws-like { $node.new(:$value, :$next) }, X::TypeCheck::Assignment,
+        throws-like { $node.new(:$value, :$next) }, X::TypeCheck::Binding,
           'The :next argument must be of type Series';
     };
 };
@@ -79,6 +79,17 @@ subtest 'infix ::', {
     # assert that the right operand must be Nil or of type Series
     throws-like { $value :: $node }, X::Multi::NoMatch,
       'The right operand must be Nil or of type Series';
+};
+
+subtest 'iterator', {
+    my $series = 2 :: 1 :: Nil;
+    diag 'my $series = 2 :: 1 :: Nil';
+
+    my $iterator = $series.iterator;
+    does-ok $iterator, Iterator:D, '$series.iterator';
+    cmp-ok $iterator.pull-one, '=:=', 2, '$iterator.pull-one';
+    cmp-ok $iterator.pull-one, '=:=', 1, '$iterator.pull-one';
+    cmp-ok $iterator.pull-one, '=:=', IterationEnd, '$iterator.pull-one';
 };
 
 done-testing;

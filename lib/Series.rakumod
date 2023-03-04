@@ -1,23 +1,43 @@
-class Series {
-    has Mu $.value is required;
+class Series does Iterable {
+    has $.value is required;
     has Series $.next;
     method !SET-SELF(Mu \value, \next) {
-        $!value := value;
+        $!value := value<>;
         $!next  := next;
         self;
     }
 
     # Constructors
-    multi method new(Mu :$value!, Series :$next --> Series:D) {
-        self.CREATE!SET-SELF($value<>, $next);
+    multi method new(Mu :$value!, :$next! --> Series:D) {
+        Series.CREATE!SET-SELF($value, $next.self);
+    }
+    multi method new(Mu :$value! --> Series:D) {
+        Series.CREATE!SET-SELF($value, Series);
     }
 
     proto sub infix:<::>(|) is assoc<right> is export {*}
     multi sub infix:<::>(Mu \value, Nil --> Series:D) {
-        Series.CREATE!SET-SELF(value<>, Series);
+        Series.CREATE!SET-SELF(value, Series);
     }
-    multi sub infix:<::>(Mu \value, Series $next --> Series:D) {
-        Series.CREATE!SET-SELF(value<>, $next);
+    multi sub infix:<::>(Mu \value, Series \next --> Series:D) {
+        Series.CREATE!SET-SELF(value, next.self);
+    }
+
+    # Iterable implementation
+    my class Traversal does Iterator {
+        has $.series;
+        method pull-one() {
+            if my $node = $!series {
+                $!series = $node.next;
+                $node.value;
+            }
+            else {
+                IterationEnd;
+            }
+        }
+    }
+    multi method iterator(Series:D: --> Iterator:D) {
+        Traversal.new(series => self);
     }
 }
 
@@ -29,8 +49,8 @@ Series - Purely functional sequences
 
 =head1 DESCRIPTION
 
-    class Series {
-        has Mu $.value is required;
+    class Series does Iterable {
+        has $.value is required;
         has Series $.next;
     }
 
@@ -47,10 +67,10 @@ C<Series> exports the following operator that constructs a linked list node:
 =head2 infix ::
 
     multi sub infix:<::>(Mu \value, Nil --> Series:D)
-    multi sub infix:<::>(Mu \value, Series $next --> Series:D)
+    multi sub infix:<::>(Mu \value, Series \next --> Series:D)
 
 Constructs a C<Series> node that links the decontainerized C<value> to the
-C<$next> series of values or to the C<Series> type object representing the empty
+C<next> series of values or to the C<Series> type object representing the empty
 series. This operator is right associative, so if C<::> operations are chained,
 all arguments but the last are treated as I<values>.
 
@@ -58,11 +78,18 @@ all arguments but the last are treated as I<values>.
 
 =head2 method new
 
-Defined as:
-
-    multi method new(Mu :$value!, Series :$next --> Series:D)
+    multi method new(Mu :$value!, :$next! --> Series:D)
+    multi method new(Mu :$value! --> Series:D)
 
 Constructs a C<Series> node that links the decontainerized C<$value> to the
-C<$next> series of values.
+C<$next> series of values or to the C<Series> type object representing the empty
+series.
+
+=head2 method iterator
+
+    multi method iterator(Series:D: --> Iterator:D)
+
+Returns an L<C<Iterator>|https://docs.raku.org/type/Iterator.html> over the
+series.
 
 =end pod
