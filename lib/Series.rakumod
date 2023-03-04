@@ -12,9 +12,11 @@ class Series {
         self.CREATE!SET-SELF($value<>, $next);
     }
 
-    sub infix:<::>(
-      Mu $value, Series $next --> Series:D
-    ) is assoc<right> is export {
+    proto sub infix:<::>(|) is assoc<right> is export {*}
+    multi sub infix:<::>(Mu $value, Nil --> Series:D) {
+        Series.CREATE!SET-SELF($value<>, Series);
+    }
+    multi sub infix:<::>(Mu $value, Series $next --> Series:D) {
         Series.CREATE!SET-SELF($value<>, $next);
     }
 }
@@ -44,11 +46,13 @@ C<Series> exports the following operator that constructs a linked list node:
 
 =head2 infix ::
 
-    sub infix:<::>(Mu $value, Series $next --> Series:D)
+    multi sub infix:<::>(Mu $value, Nil --> Series:D)
+    multi sub infix:<::>(Mu $value, Series $next --> Series:D)
 
 Constructs a C<Series> node that links the decontainerized C<$value> to the
-C<$next> series of values. This operator is right associative, so if C<::>
-operations are chained, all arguments but the last are treated as I<values>.
+C<$next> series of values or to the C<Series> type object representing the empty
+series. This operator is right associative, so if C<::> operations are chained,
+all arguments but the last are treated as I<values>.
 
 =head1 METHODS
 

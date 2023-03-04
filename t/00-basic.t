@@ -47,9 +47,9 @@ subtest 'infix ::', {
 
     my Series $series;
     diag 'my Series $series';
-    subtest '$value :: $series', {
-        $series = $value :: $series;
-        isa-ok $series, Series:D, '$series = $value :: $series';
+    subtest '$value :: Nil', {
+        $series = $value :: Nil;
+        isa-ok $series, Series:D, '$series = $value :: Nil';
 
         # assert that $!value is not bound to the provided container
         $value .= new;
@@ -67,10 +67,6 @@ subtest 'infix ::', {
         # assert that $!next is not bound to the provided container
         $node = Any.new;
         cmp-ok $series2.next, '=:=', $series.self, '$series2.next';
-
-        # assert that the right operand must be a Series
-        throws-like { $value :: $node }, X::TypeCheck::Binding::Parameter,
-          'The right operand must be of type Series';
     };
 
     # assert that infix:<::> is right associative
@@ -79,6 +75,10 @@ subtest 'infix ::', {
         isa-ok $series3, Series:D, 'my $series3 = $value :: $series :: Series';
         cmp-ok $series3.next.value, '=:=', $series.self, '$series3.next.value';
     };
+
+    # assert that the right operand must be Nil or of type Series
+    throws-like { $value :: $node }, X::Multi::NoMatch,
+      'The right operand must be Nil or of type Series';
 };
 
 done-testing;
