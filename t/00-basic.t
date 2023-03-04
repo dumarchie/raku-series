@@ -40,4 +40,38 @@ subtest 'named argument constructor', {
     };
 };
 
+subtest 'infix ::', {
+    # assert that infix :: accepts a Mu left operand
+    my Mu $value;
+    diag 'my Mu $value';
+
+    my Series $series;
+    diag 'my Series $series';
+    subtest '$value :: $series', {
+        $series = $value :: $series;
+        isa-ok $series, Series:D, '$series = $value :: $series';
+
+        # assert that $!value is not bound to the provided container
+        $value .= new;
+        cmp-ok $series.value, '=:=', Mu,     '$series.value';
+        cmp-ok $series.next,  '=:=', Series, '$series.next';
+    };
+
+    # assert that a concrete right operand initializes $!next
+    my $node = $series;
+    diag 'my $node = $series';
+    subtest '$value :: $node', {
+        my $series2 = $value :: $node;
+        isa-ok $series2, Series:D, 'my $series2 = $value :: $node';
+
+        # assert that $!next is not bound to the provided container
+        $node = Any.new;
+        cmp-ok $series2.next, '=:=', $series.self, '$series2.next';
+
+        # assert that the right operand must be a Series
+        throws-like { $value :: $node }, X::TypeCheck::Binding::Parameter,
+          'The right operand must be of type Series';
+    };
+};
+
 done-testing;

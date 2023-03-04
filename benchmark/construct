@@ -2,11 +2,42 @@
 use lib 'lib';
 use Series;
 
-sub MAIN(Int :$elems = 2**20) {
-    my Series $next;
-    my \start = now;
-    for ^$elems -> $value {
-        $next .= new(:$value, :$next);
-    }
-    say sprintf "Construct series with $elems nodes: %0.3fs", now - start;
+sub MAIN(Int :$n = 2**20) {
+    my $overhead = overhead "base case ($n assignments)", {
+        my Int $var;
+        for ^$n -> $value { $var = $value }
+    };
+
+    # Benchmark Series constructors
+    benchmark 'Series.new(:$value, :$next)', {
+        my Series $next;
+        for ^$n -> $value { $next = Series.new(:$value, :$next) };
+    }, $overhead;
+
+    benchmark '$value :: $next', {
+        my Series $next;
+        for ^$n -> $value { $next = $value :: $next };
+    }, $overhead;
+
+    # For comparison, benchmark Array.unshift
+    benchmark '@values.unshift($value)', {
+        my @values;
+        for ^$n -> $value { @values.unshift($value) };
+    }, $overhead;
+}
+
+my $format = '%-31s: %0.3fs';
+sub overhead($desc, &code) {
+    my $time = run-time &code;
+    printf "$format\n", $desc, $time;
+    $time;
+}
+sub benchmark($desc, &code, $overhead) {
+    my $time = run-time &code;
+    printf "$format; w/o overhead: %0.3fs\n", $desc, $time, $time - $overhead;
+}
+
+sub run-time(&code) {
+    code;
+    (now - ENTER now).round(0.001);
 }
