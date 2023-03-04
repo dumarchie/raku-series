@@ -72,6 +72,13 @@ subtest 'infix ::', {
         throws-like { $value :: $node }, X::TypeCheck::Binding::Parameter,
           'The right operand must be of type Series';
     };
+
+    # assert that infix:<::> is right associative
+    subtest '$value :: $series :: Series', {
+        my $series3 = $value :: $series :: Series;
+        isa-ok $series3, Series:D, 'my $series3 = $value :: $series :: Series';
+        cmp-ok $series3.next.value, '=:=', $series.self, '$series3.next.value';
+    };
 };
 
 done-testing;
