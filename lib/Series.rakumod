@@ -39,6 +39,11 @@ class Series does Iterable {
     multi method iterator(Series:D: --> Iterator:D) {
         Traversal.new(series => self);
     }
+
+    # Coercion to Raku list
+    multi method list(Series:D: --> List:D) {
+        self.Seq.list;
+    }
 }
 
 =begin pod
@@ -91,5 +96,12 @@ series.
 
 Returns an L<C<Iterator>|https://docs.raku.org/type/Iterator.html> over the
 series.
+
+=head2 method list
+
+    multi method list(Series:D: --> List:D)
+
+Returns a lazy L<C<List>|https://docs.raku.org/type/List.html> based on a fresh
+C<.iterator>.
 
 =end pod

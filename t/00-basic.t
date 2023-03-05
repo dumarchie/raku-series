@@ -81,15 +81,24 @@ subtest 'infix ::', {
       'The right operand must be Nil or of type Series';
 };
 
-subtest 'iterator', {
+subtest '.iterator', {
     my $series = 2 :: 1 :: Nil;
     diag 'my $series = 2 :: 1 :: Nil';
 
     my $iterator = $series.iterator;
-    does-ok $iterator, Iterator:D, '$series.iterator';
+    does-ok $iterator, Iterator:D, 'my $iterator = $series.iterator';
     cmp-ok $iterator.pull-one, '=:=', 2, '$iterator.pull-one';
     cmp-ok $iterator.pull-one, '=:=', 1, '$iterator.pull-one';
     cmp-ok $iterator.pull-one, '=:=', IterationEnd, '$iterator.pull-one';
+};
+
+subtest '.list', {
+    my $series = 2 :: 1 :: Nil;
+    diag 'my $series = 2 :: 1 :: Nil';
+
+    my $list = $series.list;
+    does-ok $list, List:D, 'my $list = $series.list';
+    is-deeply $list, (2, 1), '$list contents';
 };
 
 done-testing;
