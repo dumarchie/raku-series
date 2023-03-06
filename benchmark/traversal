@@ -1,0 +1,16 @@
+#!/usr/bin/env raku
+use lib 'lib';
+use Series;
+
+sub MAIN(Int :$n = 2 ** 20) {
+    my Series $series;
+    for ^$n -> $value { $series = $value :: $series };
+    benchmark "\$series.skip($n)", { $series.skip($n) };
+    benchmark '$series.elems',     { $series.elems    };
+}
+
+sub benchmark($desc, &code) {
+    code;
+    my $time = now - ENTER now;
+    printf "%-31s: %0.3fs\n", $desc, $time;
+}

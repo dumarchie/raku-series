@@ -22,7 +22,14 @@ class Series does Iterable {
 
     # Destructuring
     multi method head(Series:D:) { $!value }
+
     multi method skip(Series:D: --> Series) { $!next  }
+    multi method skip(Int() $n = 1 --> Series) {
+        my $node := self;
+        my int $i = $n;
+        $node := $node.next while $node && $i-- > 0;
+        $node;
+    }
 
     # Iterable implementation
     my class Traversal does Iterator {
@@ -96,8 +103,10 @@ Returns the B<first> value of the series.
 =head2 method skip
 
     multi method skip(Series:D: --> Series)
+    multi method skip(Int() $n = 1 --> Series)
 
-Returns the C<Series> that remains after discarding the first value.
+Returns the C<Series> that remains after discarding the first value or C<$n>
+values. Negative values of C<$n> count as 0.
 
 =head2 method iterator
 

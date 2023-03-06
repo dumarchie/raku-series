@@ -81,6 +81,17 @@ subtest 'infix ::', {
       'The right operand must be Nil or of type Series';
 };
 
+subtest '.skip($n)', {
+    cmp-ok Series.skip, '=:=', Series, 'Series.skip';
+
+    my $series = 2 :: 1 :: Nil;
+    diag 'my $series = 2 :: 1 :: Nil';
+
+    cmp-ok $series.skip(-1), '=:=', $series.self, '$series.skip(-1)';
+    cmp-ok $series.skip(1),  '=:=', $series.skip, '$series.skip(1)';
+    cmp-ok $series.skip(3),  '=:=', Series, '$series.skip(3)';
+}
+
 subtest '.iterator', {
     my $series = 2 :: 1 :: Nil;
     diag 'my $series = 2 :: 1 :: Nil';
