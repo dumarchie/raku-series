@@ -20,6 +20,10 @@ class Series does Iterable {
         Series.CREATE!SET-SELF(value, next.self);
     }
 
+    # Destructuring
+    multi method head(Series:D:) { $!value }
+    multi method skip(Series:D: --> Series) { $!next  }
+
     # Iterable implementation
     my class Traversal does Iterator {
         has $.series;
@@ -51,10 +55,7 @@ Series - Purely functional sequences
 
 =head1 DESCRIPTION
 
-    class Series does Iterable {
-        has $.value is required;
-        has Series $.next;
-    }
+    class Series does Iterable { }
 
 A C<Series> is a purely functional B<linked list>, a recursive data structure
 consisting of nodes that link a I<value> to the I<next> node. The first node
@@ -85,6 +86,18 @@ all arguments but the last are treated as I<values>.
 Constructs a C<Series> node that links the decontainerized C<$value> to the
 C<$next> series of values or to the C<Series> type object representing the empty
 series.
+
+=head2 method head
+
+    multi method head(Series:D:)
+
+Returns the B<first> value of the series.
+
+=head2 method skip
+
+    multi method skip(Series:D: --> Series)
+
+Returns the C<Series> that remains after discarding the first value.
 
 =head2 method iterator
 

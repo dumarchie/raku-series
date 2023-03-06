@@ -19,8 +19,8 @@ subtest 'named argument constructor', {
 
         # assert that $!value is not bound to the provided container
         $value .= new;
-        cmp-ok $node.value, '=:=', Mu,     '$node.value';
-        cmp-ok $node.next,  '=:=', Series, '$node.next';
+        cmp-ok $node.head, '=:=', Mu,     '$node.head';
+        cmp-ok $node.skip, '=:=', Series, '$node.skip';
     };
 
     # assert that named argument "next" initializes $!next
@@ -32,7 +32,7 @@ subtest 'named argument constructor', {
 
         # assert that $!next is not bound to the provided container
         $next = Nil;
-        cmp-ok $node2.next, '=:=', $node.self, '$node2.next';
+        cmp-ok $node2.skip, '=:=', $node.self, '$node2.skip';
 
         # assert that the "next" argument must be a Series
         throws-like { $node.new(:$value, :$next) }, X::TypeCheck::Binding,
@@ -53,8 +53,8 @@ subtest 'infix ::', {
 
         # assert that $!value is not bound to the provided container
         $value .= new;
-        cmp-ok $series.value, '=:=', Mu,     '$series.value';
-        cmp-ok $series.next,  '=:=', Series, '$series.next';
+        cmp-ok $series.head, '=:=', Mu,     '$series.head';
+        cmp-ok $series.skip, '=:=', Series, '$series.skip';
     };
 
     # assert that a concrete right operand initializes $!next
@@ -66,14 +66,14 @@ subtest 'infix ::', {
 
         # assert that $!next is not bound to the provided container
         $node = Any.new;
-        cmp-ok $series2.next, '=:=', $series.self, '$series2.next';
+        cmp-ok $series2.skip, '=:=', $series.self, '$series2.skip';
     };
 
     # assert that infix:<::> is right associative
     subtest '$value :: $series :: Series', {
         my $series3 = $value :: $series :: Series;
         isa-ok $series3, Series:D, 'my $series3 = $value :: $series :: Series';
-        cmp-ok $series3.next.value, '=:=', $series.self, '$series3.next.value';
+        cmp-ok $series3.skip.head, '=:=', $series.self, '$series3.skip.head';
     };
 
     # assert that the right operand must be Nil or of type Series
