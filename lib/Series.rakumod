@@ -28,7 +28,7 @@ class Series does Iterable {
         has $.series;
         method pull-one() {
             if my $node = $!series {
-                $!series = $node.next;
+                $!series := $node.next;
                 $node.value;
             }
             else {

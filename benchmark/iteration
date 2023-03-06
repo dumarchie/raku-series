@@ -1,0 +1,32 @@
+#!/usr/bin/env raku
+use lib 'lib';
+use Series;
+
+sub MAIN(Int :$n = 2 ** 20) {
+    my $range = ^$n;
+    my $overhead = overhead "base case ({ $range.raku }.list.elems)", {
+        $range.list.elems;
+    };
+
+    my Series $series;
+    for ^$n -> $value { $series = $value :: $series };
+    benchmark '$series.list.elems', {
+        $series.list.elems;
+    }, $overhead;
+}
+
+my $format = '%-31s: %0.3fs';
+sub overhead($desc, &code) {
+    my $time = run-time &code;
+    printf "$format\n", $desc, $time;
+    $time;
+}
+sub benchmark($desc, &code, $overhead) {
+    my $time = run-time &code;
+    printf "$format; w/o overhead: %0.3fs\n", $desc, $time, $time - $overhead;
+}
+
+sub run-time(&code) {
+    code;
+    (now - ENTER now).round(0.001);
+}
