@@ -8,11 +8,8 @@ class Series does Iterable {
     }
 
     # Constructors
-    multi method new(Mu :$value!, :$next! --> Series:D) {
+    method new(Mu :$value!, Series :$next --> Series:D) {
         Series.CREATE!SET-SELF($value, $next.self);
-    }
-    multi method new(Mu :$value! --> Series:D) {
-        Series.CREATE!SET-SELF($value, Series);
     }
 
     proto sub infix:<::>(|) is assoc<right> is export {*}
@@ -83,8 +80,7 @@ all arguments but the last are treated as I<values>.
 
 =head2 method new
 
-    multi method new(Mu :$value!, :$next! --> Series:D)
-    multi method new(Mu :$value! --> Series:D)
+    method new(Mu :$value!, Series :$next --> Series:D)
 
 Constructs a C<Series> node that links the decontainerized C<$value> to the
 C<$next> series of values or to the C<Series> type object representing the empty

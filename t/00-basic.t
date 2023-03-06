@@ -7,8 +7,8 @@ subtest 'named argument constructor', {
     # assert that the constructor requires a value
     my Series $node;
     diag 'my Series $node';
-    throws-like { $node .= new }, X::Attribute::Required, name => '$!value',
-      'The :value argument is required';
+    throws-like { $node .= new }, Exception, message => /«value»/,
+      "Named parameter 'value' is required";
 
     # assert that the constructor accepts a Mu "value"
     my Mu $value;
