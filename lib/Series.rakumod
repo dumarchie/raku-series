@@ -57,9 +57,13 @@ class Series does Iterable {
         Traversal.new(series => self);
     }
 
-    # Coercion to Raku list
+    # Coercion
     multi method list(Series:D: --> List:D) {
         self.Seq.list;
+    }
+
+    multi method raku(Series:D: --> Str:D) {
+        "Series.new{ self.list.raku }";
     }
 }
 
@@ -67,7 +71,6 @@ $Empty := class Series::End is Series {
     multi method Bool(::?CLASS:D: --> False) { }
     multi method head( --> Nil) { }
     multi method skip( --> Series:D) { $Empty }
-    multi method raku(::?CLASS:D: --> 'Series.new') { }
 }.CREATE;
 
 =begin pod
@@ -143,5 +146,12 @@ series.
 
 Returns a lazy L<C<List>|https://docs.raku.org/type/List.html> based on a fresh
 C<.iterator>.
+
+=head2 method raku
+
+    multi method raku(Series:D: --> Str:D)
+
+Returns a string that L<evaluates|https://docs.raku.org/routine/EVAL.html> to an
+equivalent series.
 
 =end pod

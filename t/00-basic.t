@@ -4,20 +4,18 @@ use lib 'lib';
 use Series;
 
 subtest '.new', {
-    subtest 'no value is provided', {
+    subtest 'call without arguments', {
         my $series = Series.new;
         isa-ok $series, Series:D, 'my $series = Series.new';
         cmp-ok $series.Bool, '=:=', False,        '$series.Bool';
         cmp-ok $series.head, '=:=', Nil,          '$series.head';
         cmp-ok $series.skip, '=:=', $series.self, '$series.head';
-        is $series.raku, 'Series.new',            '$series.raku';
+        is $series.raku, 'Series.new()',          '$series.raku';
     };
 
     # assert that the constructor accepts a named "value" of type Mu
-    subtest 'named "value" is provided', {
+    subtest 'calls with named arguments', {
         my Mu $value;
-        diag 'my Mu $value';
-
         my $node = Series.new(:$value);
         isa-ok $node, Series:D, 'my $node = Series.new(:$value)';
 
@@ -28,8 +26,6 @@ subtest '.new', {
 
         # assert that named argument "next" initializes $!next
         my $next = $node;
-        diag 'my $next = $node';
-
         my $node2 = $node.new(:$value, :$next);
         isa-ok $node, Series:D, 'my $node2 = $node.new(:$value, :$next)';
 
@@ -42,30 +38,24 @@ subtest '.new', {
           'The :next argument must be of type Series';
     };
 
-    subtest 'positional values are provided', {
+    subtest 'calls with positional arguments', {
         cmp-ok Series.new(Empty), '=:=', Series.new, 'Series.new(Empty)';
 
         my Mu $value;
-        diag 'my Mu $value';
-
         my $series = Series.new($value, 42);
         isa-ok $series, Series:D, 'my $series = Series.new($value, 42)';
 
         # assert that $!value is not bound to the provided container
         $value .= new;
-        cmp-ok $series.head,      '=:=', Mu,         '$series.head';
-        cmp-ok $series.skip.head, '=:=', 42,         '$series.skip.head';
-        cmp-ok $series.skip.skip, '=:=', Series.new, '$series.skip.skip';
+        is $series.raku, 'Series.new(Mu, 42)', '$series.raku';
     };
 };
 
 subtest 'infix ::', {
     # assert that infix :: accepts a Mu left operand
     my Mu $value;
-    diag 'my Mu $value';
 
-    my Series $series;
-    diag 'my Series $series';
+    my $series;
     subtest '$value :: Nil', {
         $series = $value :: Nil;
         isa-ok $series, Series:D, '$series = $value :: Nil';
@@ -77,59 +67,50 @@ subtest 'infix ::', {
     };
 
     # assert that a concrete right operand initializes $!next
-    my $node = $series;
-    diag 'my $node = $series';
-    subtest '$value :: $node', {
-        my $series2 = $value :: $node;
-        isa-ok $series2, Series:D, 'my $series2 = $value :: $node';
+    my $right = $series;
+    subtest '$value :: $series', {
+        my $series2 = $value :: $right;
+        isa-ok $series2, Series:D, 'my $series2 = $value :: $series';
 
         # assert that $!next is not bound to the provided container
-        $node = Any.new;
+        $right = Any.new;
         cmp-ok $series2.skip, '=:=', $series.self, '$series2.skip';
     };
 
-    # assert that infix:<::> is right associative
-    subtest '$value :: $series :: Series', {
+    subtest 'infix:<::> is right associative', {
         my $series3 = $value :: $series :: Series;
         isa-ok $series3, Series:D, 'my $series3 = $value :: $series :: Series';
-        cmp-ok $series3.skip.head, '=:=', $series.self, '$series3.skip.head';
-        cmp-ok $series3.skip.skip, '=:=', Series.new,   '$series3.skip.skip';
+        is $series3.raku, "Series.new({ $value.raku }, { $series.raku })",
+          '$series3.raku';
     };
 
-    # assert that the right operand must be Nil or of type Series
-    throws-like { $value :: $node }, X::Multi::NoMatch,
-      'The right operand must be Nil or of type Series';
+    throws-like { $value :: $right }, X::Multi::NoMatch,
+      'the right operand must be Nil or of type Series';
 };
 
 subtest '.skip($n)', {
     cmp-ok Series.skip, '=:=', Series.new, 'Series.skip';
 
-    my $series = 2 :: 1 :: Nil;
-    diag 'my $series = 2 :: 1 :: Nil';
-
+    my $series = Series.new(1, 2);
     cmp-ok $series.skip(-1), '=:=', $series.self, '$series.skip(-1)';
     cmp-ok $series.skip(1),  '=:=', $series.skip, '$series.skip(1)';
     cmp-ok $series.skip(3),  '=:=', Series.new,   '$series.skip(3)';
 };
 
 subtest '.iterator', {
-    my $series = 2 :: 1 :: Nil;
-    diag 'my $series = 2 :: 1 :: Nil';
-
+    my $series = Series.new(1, 2);
     my $iterator = $series.iterator;
     does-ok $iterator, Iterator:D, 'my $iterator = $series.iterator';
-    cmp-ok $iterator.pull-one, '=:=', 2, '$iterator.pull-one';
     cmp-ok $iterator.pull-one, '=:=', 1, '$iterator.pull-one';
+    cmp-ok $iterator.pull-one, '=:=', 2, '$iterator.pull-one';
     cmp-ok $iterator.pull-one, '=:=', IterationEnd, '$iterator.pull-one';
 };
 
 subtest '.list', {
-    my $series = 2 :: 1 :: Nil;
-    diag 'my $series = 2 :: 1 :: Nil';
-
+    my $series = Series.new(1, 2);
     my $list = $series.list;
     does-ok $list, List:D, 'my $list = $series.list';
-    is-deeply $list, (2, 1), '$list contents';
+    is-deeply $list, (1, 2), '$list contents';
 };
 
 done-testing;
