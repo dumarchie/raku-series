@@ -1,19 +1,12 @@
 my $Empty; # will be bound to the Series::End singleton
+my &cons;  # protected Series::Node constructor
 
 class Series does Iterable {
-    has Mu $.value is required;
-    has Series $.next;
-    method !SET-SELF(Mu \value, Series \next) {
-        $!value := value<>;
-        $!next  := next;
-        self;
-    }
-
     # Constructors
     proto method new(|) {*}
     multi method new(--> Series:D) { $Empty }
     multi method new(Mu :$value!, :$next --> Series:D) {
-        Series.CREATE!SET-SELF($value, $next.self // $Empty);
+        cons($value, $next.self // $Empty);
     }
     multi method new(**@values is raw --> Series:D) {
         $Empty!insert-list(@values);
@@ -25,22 +18,22 @@ class Series does Iterable {
     }
     method !insert-list(@values) {
         my $series := self;
-        $series := Series.CREATE!SET-SELF($_, $series) for @values.reverse;
+        $series := cons($_, $series) for @values.reverse;
         $series;
     }
 
     proto sub infix:<::>(|) is assoc<right> is export {*}
     multi sub infix:<::>(Mu \value, Nil --> Series:D) {
-        Series.CREATE!SET-SELF(value, $Empty);
+        cons(value, $Empty);
     }
     multi sub infix:<::>(Mu \value, Series \next --> Series:D) {
-        Series.CREATE!SET-SELF(value, next.self // $Empty);
+        cons(value, next.self // $Empty);
     }
 
     # Destructuring
-    multi method head(Series:D:) { $!value }
+    multi method head( --> Nil) { }
 
-    multi method skip(Series:D: --> Series:D) { $!next  }
+    multi method skip( --> Series:D) { $Empty }
     multi method skip(Int() $n = 1 --> Series:D) {
         my $node := self // $Empty;
         my int $i = $n;
@@ -77,9 +70,26 @@ class Series does Iterable {
 
 $Empty := class Series::End is Series {
     multi method Bool(::?CLASS:D: --> False) { }
-    multi method head( --> Nil) { }
-    multi method skip( --> Series:D) { $Empty }
 }.CREATE;
+
+class Series::Node is Series {
+    has Mu $.value is required;
+    has Series $.next;
+    method !SET-SELF(Mu \value, Series \next) {
+        $!value := value<>;
+        $!next  := next;
+        self;
+    }
+
+    # Protected constructor
+    &cons = sub (Mu \value, Series \next) {
+        ::?CLASS.CREATE!SET-SELF(value, next);
+    }
+
+    # Destructuring
+    multi method head(::?CLASS:D:) { $!value }
+    multi method skip(::?CLASS:D: --> Series:D) { $!next  }
+}
 
 =begin pod
 
@@ -111,7 +121,7 @@ C<Series> exports the following operator that constructs a linked list node:
     multi sub infix:<::>(Mu \value, Series \next --> Series:D)
 
 Constructs a C<Series> node that links the decontainerized C<value> to the
-C<next> series of values or to the C<Series> type object representing the empty
+C<next> series of values or, if the right operand is not defined, to the empty
 series. This operator is right associative, so if C<::> operations are chained,
 all arguments but the last are treated as I<values>.
 
@@ -123,7 +133,7 @@ all arguments but the last are treated as I<values>.
     multi method new(Mu :$value!, :$next --> Series:D)
     multi method new(**@values is raw --> Series:D)
 
-Returns the empty series if called without value. Otherwise constructs a
+Returns the empty series if called without arguments. Otherwise constructs a
 C<Series> node that links the decontainerized C<$value> or C<@values> to the
 empty series.
 
@@ -136,13 +146,18 @@ invocant series, or to the empty series if the invocant is a type object.
 
 =head2 method head
 
-    multi method head(Series:D:)
+Defined as:
 
-Returns the B<first> value of the series, or C<Nil> if the series is empty.
+    multi method head()
+
+Returns the B<first> value of the series, or C<Nil> if called on an empty or
+undefined series.
 
 =head2 method skip
 
-    multi method skip(Series:D: --> Series:D)
+Defined as:
+
+    multi method skip( --> Series:D)
     multi method skip(Int() $n = 1 --> Series:D)
 
 Returns the C<Series> that remains after discarding the first value or C<$n>
