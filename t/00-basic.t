@@ -51,6 +51,18 @@ subtest '.new', {
     };
 };
 
+subtest '.insert', {
+    cmp-ok Series.insert(Empty), '=:=', Series.new, 'Series.insert(Empty)';
+
+    my $series = Series.new(42);
+    $series .= insert(my Mu $value);
+    isa-ok $series, Series:D, '$series .= insert($value)';
+
+    # assert that $!value is not bound to the provided container
+    $value .= new;
+    is $series.raku, 'Series.new(Mu, 42)', '$series.raku';
+};
+
 subtest 'infix ::', {
     # assert that infix :: accepts a Mu left operand
     my Mu $value;
@@ -78,10 +90,11 @@ subtest 'infix ::', {
     };
 
     subtest 'infix:<::> is right associative', {
-        my $series3 = $value :: $series :: Series;
-        isa-ok $series3, Series:D, 'my $series3 = $value :: $series :: Series';
-        is $series3.raku, "Series.new({ $value.raku }, { $series.raku })",
-          '$series3.raku';
+        # here we also assert that the left operand does not slip
+        # and that a Series type object is a valid right operand
+        my $series3 = Empty :: $series :: Series;
+        isa-ok $series3, Series:D, 'my $series3 = Empty :: $series :: Series';
+        is $series3.raku, "Series.new(Empty, {$series.raku})", '$series3.raku';
     };
 
     throws-like { $value :: $right }, X::Multi::NoMatch,

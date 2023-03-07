@@ -16,7 +16,15 @@ class Series does Iterable {
         Series.CREATE!SET-SELF($value, $next.self // $Empty);
     }
     multi method new(**@values is raw --> Series:D) {
-        my $series := $Empty;
+        $Empty!insert-list(@values);
+    }
+
+    method insert(**@values is raw --> Series:D) {
+        my $series := self // $Empty;
+        $series!insert-list(@values);
+    }
+    method !insert-list(@values) {
+        my $series := self;
         $series := Series.CREATE!SET-SELF($_, $series) for @values.reverse;
         $series;
     }
@@ -118,6 +126,13 @@ all arguments but the last are treated as I<values>.
 Returns the empty series if called without value. Otherwise constructs a
 C<Series> node that links the decontainerized C<$value> or C<@values> to the
 empty series.
+
+=head2 method insert
+
+    method insert(**@values is raw --> Series:D)
+
+Returns a I<new> series that links the decontainerized C<@values> to the
+invocant series, or to the empty series if the invocant is a type object.
 
 =head2 method head
 
