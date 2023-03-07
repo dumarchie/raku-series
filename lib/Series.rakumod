@@ -15,6 +15,11 @@ class Series does Iterable {
     multi method new(Mu :$value!, :$next --> Series:D) {
         Series.CREATE!SET-SELF($value, $next.self // $Empty);
     }
+    multi method new(**@values is raw --> Series:D) {
+        my $series := $Empty;
+        $series := Series.CREATE!SET-SELF($_, $series) for @values.reverse;
+        $series;
+    }
 
     proto sub infix:<::>(|) is assoc<right> is export {*}
     multi sub infix:<::>(Mu \value, Nil --> Series:D) {
@@ -105,10 +110,11 @@ all arguments but the last are treated as I<values>.
 
     multi method new(--> Series:D)
     multi method new(Mu :$value!, :$next --> Series:D)
+    multi method new(**@values is raw --> Series:D)
 
 Returns the empty series if called without value. Otherwise constructs a
-C<Series> node that links the decontainerized C<$value> to the C<$next> series
-of values or to the empty series.
+C<Series> node that links the decontainerized C<$value> or C<@values> to the
+empty series.
 
 =head2 method head
 

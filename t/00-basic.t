@@ -14,7 +14,7 @@ subtest '.new', {
     };
 
     # assert that the constructor accepts a named "value" of type Mu
-    subtest 'named argument "value" is provided', {
+    subtest 'named "value" is provided', {
         my Mu $value;
         diag 'my Mu $value';
 
@@ -40,6 +40,22 @@ subtest '.new', {
         # assert that named arguments are ignored if "next" is not a Series
         throws-like { $node.new(:$value, :$next) }, X::TypeCheck::Binding,
           'The :next argument must be of type Series';
+    };
+
+    subtest 'positional values are provided', {
+        cmp-ok Series.new(Empty), '=:=', Series.new, 'Series.new(Empty)';
+
+        my Mu $value;
+        diag 'my Mu $value';
+
+        my $series = Series.new($value, 42);
+        isa-ok $series, Series:D, 'my $series = Series.new($value, 42)';
+
+        # assert that $!value is not bound to the provided container
+        $value .= new;
+        cmp-ok $series.head,      '=:=', Mu,         '$series.head';
+        cmp-ok $series.skip.head, '=:=', 42,         '$series.skip.head';
+        cmp-ok $series.skip.skip, '=:=', Series.new, '$series.skip.skip';
     };
 };
 

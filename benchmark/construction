@@ -3,7 +3,7 @@ use lib 'lib';
 use Series;
 
 sub MAIN(Int :$n = 2**20) {
-    my $overhead = overhead "base case ($n assignments)", {
+    my $overhead = overhead "$n assignments", {
         my Int $var;
         for ^$n -> $value { $var = $value }
     };
@@ -19,22 +19,32 @@ sub MAIN(Int :$n = 2**20) {
         for ^$n -> $value { $next = $value :: $next };
     }, $overhead;
 
-    # For comparison, benchmark Array.unshift
-    benchmark '@values.unshift($value)', {
-        my @values;
-        for ^$n -> $value { @values.unshift($value) };
-    }, $overhead;
+    my @values := (^$n).list;
+    @values.elems; # reify
+    benchmark 'Series.new(@values.Slip)', {
+        my $series = Series.new(@values.Slip);
+    };
+
+    # For comparison, benchmark List.new
+    benchmark 'List.new(@values.Slip)', {
+        my $list = List.new(@values.Slip);
+    };
 }
 
 my $format = '%-31s: %0.3fs';
 sub overhead($desc, &code) {
     my $time = run-time &code;
-    printf "$format\n", $desc, $time;
+    printf "$format\n", "overhead of $desc", $time;
     $time;
 }
-sub benchmark($desc, &code, $overhead) {
+sub benchmark($desc, &code, $overhead?) {
     my $time = run-time &code;
-    printf "$format; w/o overhead: %0.3fs\n", $desc, $time, $time - $overhead;
+    if $overhead {
+        printf "$format; w/o overhead: %0.3fs\n", $desc, $time, $time - $overhead;
+    }
+    else {
+        printf "$format\n", $desc, $time;
+    }
 }
 
 sub run-time(&code) {
