@@ -3,38 +3,41 @@ use Test;
 use lib 'lib';
 use Series;
 
-subtest 'named argument constructor', {
-    # assert that the constructor requires a value
-    my Series $node;
-    diag 'my Series $node';
-    throws-like { $node .= new }, Exception, message => /«value»/,
-      "Named parameter 'value' is required";
+subtest '.new', {
+    subtest 'no value is provided', {
+        my $series = Series.new;
+        isa-ok $series, Series:D, 'my $series = Series.new';
+        cmp-ok $series.Bool, '=:=', False,        '$series.Bool';
+        cmp-ok $series.head, '=:=', Nil,          '$series.head';
+        cmp-ok $series.skip, '=:=', $series.self, '$series.head';
+        is $series.raku, 'Series.new',            '$series.raku';
+    };
 
-    # assert that the constructor accepts a Mu "value"
-    my Mu $value;
-    diag 'my Mu $value';
-    subtest 'Series.new(:$value)', {
-        $node .= new(:$value);
-        isa-ok $node, Series:D, '$node .= new(:$value)';
+    # assert that the constructor accepts a named "value" of type Mu
+    subtest 'named argument "value" is provided', {
+        my Mu $value;
+        diag 'my Mu $value';
+
+        my $node = Series.new(:$value);
+        isa-ok $node, Series:D, 'my $node = Series.new(:$value)';
 
         # assert that $!value is not bound to the provided container
         $value .= new;
-        cmp-ok $node.head, '=:=', Mu,     '$node.head';
-        cmp-ok $node.skip, '=:=', Series, '$node.skip';
-    };
+        cmp-ok $node.head, '=:=', Mu,         '$node.head';
+        cmp-ok $node.skip, '=:=', Series.new, '$node.skip';
 
-    # assert that named argument "next" initializes $!next
-    my $next = $node;
-    diag 'my $next = $node';
-    subtest 'Series.new(:$value, :$next)', {
+        # assert that named argument "next" initializes $!next
+        my $next = $node;
+        diag 'my $next = $node';
+
         my $node2 = $node.new(:$value, :$next);
         isa-ok $node, Series:D, 'my $node2 = $node.new(:$value, :$next)';
 
         # assert that $!next is not bound to the provided container
-        $next = Nil;
+        $next = Any.new;
         cmp-ok $node2.skip, '=:=', $node.self, '$node2.skip';
 
-        # assert that the "next" argument must be a Series
+        # assert that named arguments are ignored if "next" is not a Series
         throws-like { $node.new(:$value, :$next) }, X::TypeCheck::Binding,
           'The :next argument must be of type Series';
     };
@@ -53,8 +56,8 @@ subtest 'infix ::', {
 
         # assert that $!value is not bound to the provided container
         $value .= new;
-        cmp-ok $series.head, '=:=', Mu,     '$series.head';
-        cmp-ok $series.skip, '=:=', Series, '$series.skip';
+        cmp-ok $series.head, '=:=', Mu,         '$series.head';
+        cmp-ok $series.skip, '=:=', Series.new, '$series.skip';
     };
 
     # assert that a concrete right operand initializes $!next
@@ -74,6 +77,7 @@ subtest 'infix ::', {
         my $series3 = $value :: $series :: Series;
         isa-ok $series3, Series:D, 'my $series3 = $value :: $series :: Series';
         cmp-ok $series3.skip.head, '=:=', $series.self, '$series3.skip.head';
+        cmp-ok $series3.skip.skip, '=:=', Series.new,   '$series3.skip.skip';
     };
 
     # assert that the right operand must be Nil or of type Series
@@ -82,15 +86,15 @@ subtest 'infix ::', {
 };
 
 subtest '.skip($n)', {
-    cmp-ok Series.skip, '=:=', Series, 'Series.skip';
+    cmp-ok Series.skip, '=:=', Series.new, 'Series.skip';
 
     my $series = 2 :: 1 :: Nil;
     diag 'my $series = 2 :: 1 :: Nil';
 
     cmp-ok $series.skip(-1), '=:=', $series.self, '$series.skip(-1)';
     cmp-ok $series.skip(1),  '=:=', $series.skip, '$series.skip(1)';
-    cmp-ok $series.skip(3),  '=:=', Series, '$series.skip(3)';
-}
+    cmp-ok $series.skip(3),  '=:=', Series.new,   '$series.skip(3)';
+};
 
 subtest '.iterator', {
     my $series = 2 :: 1 :: Nil;
