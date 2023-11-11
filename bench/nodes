@@ -1,0 +1,12 @@
+#!/usr/bin/env raku
+use v6.d;
+
+use lib 'lib';
+use Series;
+
+sub MAIN(Int() :$n = 2**22) {
+    my $series := Nil;
+    my \start = now;
+    $series := $_ :: $series for ^$n;
+    printf "Create %d nodes: %0.3fs\n", $n, now - start;
+}

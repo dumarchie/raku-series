@@ -18,24 +18,28 @@ class Series {
         self !=:= Empty;
     }
 
-    # private node constructor
-    sub node(Mu \value, \next) {
-        Series.CREATE!SET-SELF(value<>, next);
+    # create a new Series from a (containerized) value and an existing Series
+    proto method insert(|) {*}
+    multi method insert(Mu $value is rw) {
+        Series.CREATE!SET-SELF($value<>, self);
+    }
+    multi method insert(Mu \value) {
+        Series.CREATE!SET-SELF(value, self);
     }
 
     # public node constructor
     proto sub infix:<::>(|) is assoc<right> is export {*}
     multi sub infix:<::>(Mu \value, Series:D \next --> Series:D) {
-        node(value, next<>);
+        next.insert(value);
     }
     multi sub infix:<::>(Mu \value, Nil --> Series:D) {
-        node(value, Empty);
+        Empty.insert(value);
     }
 
     # construct Series from argument list
     method new(**@values is raw --> Series:D) {
         my $self := Empty;
-        $self := node($_, $self) for @values.reverse;
+        $self := $self.insert($_) for @values.reverse;
         $self;
     }
 }
