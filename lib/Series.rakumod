@@ -52,11 +52,11 @@ Series - Purely functional linked lists
 
 =head1 DESCRIPTION
 
-C<Series> are purely functional data structures implementing linked lists. A
-proper series consists of nodes that recursively link a I<value>, the C<.head>
-of the series, to the I<next> node. The last proper node links to a sentinel
-object representing the empty series. The empty series is the only C<Series>
-that evaluates to C<False> in Boolean context.
+C<Series> are immutable data structures implementing linked lists. A proper
+series consists of nodes that recursively link a I<value>, the C<.head> of the
+series, to the I<next> node. The last proper node links to a sentinel object
+representing the empty series, which is the only C<Series> that evaluates to
+C<False> in Boolean context.
 
 =head1 OPERATORS
 
@@ -83,6 +83,15 @@ creation from package names.
 
 Returns a new C<Series> consisting of the decontainerized C<@values>, or the
 empty C<Series> if called without values.
+
+=head2 method insert
+
+Defined as
+
+    method insert(\value --> Series:D)
+
+Returns a new C<Series> consisting of the decontainerized C<value> followed by
+the invocant series.
 
 =head2 method Bool
 
