@@ -1,0 +1,19 @@
+{
+  "name": "Series",
+  "description": "Purely functional linked lists",
+  "version": "0.1",
+  "perl": "6.*",
+  "authors": [
+    "Peter du Marchie van Voorthuysen"
+  ],
+  "auth": "zef:dumarchie",
+  "depends": [],
+  "build-depends": [],
+  "test-depends": [],
+  "provides": {
+    "Series": "lib/Series.rakumod"
+  },
+  "resources": [],
+  "license": "Artistic-2.0",
+  "source-url": "git://github.com/dumarchie/raku-series.git"
+}

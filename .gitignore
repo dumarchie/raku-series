@@ -1,0 +1,13 @@
+# precompiled files
+.precomp
+lib/.precomp
+
+# IntelliJ project settings
+.idea
+*.iml
+
+# performance assessments
+bench/assessments.txt
+
+# distributions
+sdist
