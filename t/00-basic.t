@@ -62,4 +62,12 @@ subtest 'infix ::', {
     ok $example.EVAL, $example;
 }
 
+subtest '.iterator', {
+    $_ = Mu.new :: Nil;
+    my $iterator = .iterator;
+    does-ok $iterator, Iterator, 'my $iterator = .iterator';
+    cmp-ok $iterator.pull-one, '=:=', .head,        '$iterator.pull-one';
+    cmp-ok $iterator.pull-one, '=:=', IterationEnd, '$iterator.pull-one';
+}
+
 done-testing;

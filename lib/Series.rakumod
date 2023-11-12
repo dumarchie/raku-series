@@ -1,11 +1,11 @@
 use v6.d;
 
-class Series {
-    has $.head;
+class Series does Iterable {
+    has $.value;
     has $.next;
     method !SET-SELF(Mu \value, \next) {
-        $!head := value;
-        $!next := next;
+        $!value := value;
+        $!next  := next;
         self;
     }
 
@@ -17,6 +17,8 @@ class Series {
     multi method Bool(Series:D: --> Bool:D) {
         self !=:= Empty;
     }
+
+    multi method head(Series:D:) { $!value }
 
     # create a new Series from a (containerized) value and an existing Series
     proto method insert(|) {*}
@@ -42,6 +44,20 @@ class Series {
         $self := $self.insert($_) for @values.reverse;
         $self;
     }
+
+    # provide iterator
+    method iterator(Series:D: --> Iterator:D) {
+        class :: does Iterator {
+            has $.series;
+            method pull-one() {
+                my \node = $!series
+                  or return IterationEnd;
+
+                $!series := node.next;
+                node.value;
+            }
+        }.new(series => self);
+    }
 }
 
 =begin pod
@@ -52,11 +68,15 @@ Series - Purely functional linked lists
 
 =head1 DESCRIPTION
 
-C<Series> are immutable data structures implementing linked lists. A proper
-series consists of nodes that recursively link a I<value>, the C<.head> of the
-series, to the I<next> node. The last proper node links to a sentinel object
-representing the empty series, which is the only C<Series> that evaluates to
-C<False> in Boolean context.
+    class Series does Iterable {}
+
+C<Series> are immutable linked lists. A proper series consists of nodes that
+recursively link a I<value>, the C<.head> of the series, to the I<next> node.
+The last proper node links to a sentinel object representing the empty series,
+which is the only C<Series> that evaluates to C<False> in Boolean context.
+
+C<Series> are L<C<Iterable>|https://docs.raku.org/type/Iterable>, but they are
+not C<Positional> so they're not lists in the Raku sense of the word.
 
 =head1 OPERATORS
 
@@ -101,7 +121,7 @@ Returns C<False> if and only if the series is empty.
 
 =head2 method head
 
-    method head(Series:D:)
+    multi method head(Series:D:)
 
 Returns the value at the head of the series, or C<Nil> if the series is empty.
 
@@ -121,5 +141,11 @@ with a proper C<Series> if you're calling C<.next> in a loop. For example:
     print "\n";
 
     # OUTPUT: «123␤»
+
+=head2 method iterator
+
+    method iterator(Series:D: --> Iterator:D)
+
+Returns an C<Iterator> over the values in the series.
 
 =end pod
