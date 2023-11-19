@@ -8,18 +8,20 @@ subtest 'method new', {
     subtest 'Series.new', {
         $_ := Series.new;
         isa-ok $_, Series:D, '$_ := Series.new';
-        cmp-ok .Bool, '=:=', False,        '.Bool';
-        cmp-ok .head, '=:=', Nil,          '.head';
-        cmp-ok .next, '=:=', $_,           '.next';
+        cmp-ok .Bool, '=:=', False,  '.Bool';
+        cmp-ok .head, '=:=', Nil,    '.head';
+        cmp-ok .next, '=:=', $_,     '.next';
+        subtest '.iterator', {
+            my $iter = .iterator;
+            does-ok $iter, Iterator, 'my $iter = .iterator';
+            cmp-ok $iter.pull-one, '=:=', IterationEnd, '$iter.pull-one';
+        }
+        is-deeply .list, Empty.List, '.list';
+        is-deeply .gist, Empty.gist, '.gist';
+        is .raku, 'Series.new',      '.raku';
     }
 
-    subtest 'Series.new(Empty)', {
-        $_ := Series.new(Empty);
-        isa-ok $_, Series:D, '$_ := Series.new(Empty)';
-        cmp-ok .Bool, '=:=', False,        '.Bool';
-        cmp-ok .head, '=:=', Nil,          '.head';
-        cmp-ok .next, '=:=', $_,           '.next';
-    }
+    cmp-ok Series.new(Empty), '=:=', Series.new, 'Series.new(Empty)';
 
     subtest 'Series.new($value)', {
         my $value = Mu.new;
@@ -28,14 +30,27 @@ subtest 'method new', {
         cmp-ok .Bool, '=:=', True,         '.Bool';
         cmp-ok .head, '=:=', $value<>,     '.head';
         cmp-ok .next, '=:=', Series.new,   '.next';
+        subtest '.iterator', {
+            my $iter = .iterator;
+            does-ok $iter, Iterator, 'my $iter = .iterator';
+            cmp-ok $iter.pull-one, '=:=', $value<>,     '$iter.pull-one';
+            cmp-ok $iter.pull-one, '=:=', IterationEnd, '$iter.pull-one';
+        }
     }
 
-    subtest 'Series.new(1, 2, 3)', {
-        $_ := Series.new(1, 2, 3);
-        isa-ok $_, Series:D, '$_ := Series.new(1, 2, 3)';
-        cmp-ok .Bool, '=:=', True,         '.Bool';
-        cmp-ok .head, '=:=', 1,            '.head';
-        is-deeply .next, Series.new(2, 3), '.next';
+    subtest 'Series.new(1, 2, "answer" => 42)', {
+        $_ := Series.new(1, 2, "answer" => 42);
+        isa-ok $_, Series:D, '$_ := Series.new(1, 2, "answer" => 42)';
+        cmp-ok .Bool, '=:=', True,                      '.Bool';
+        cmp-ok .head, '=:=', 1,                         '.head';
+        is-deeply .next, Series.new(2, "answer" => 42), '.next';
+        is-deeply .list, (1, 2, "answer" => 42),        '.list';
+        is-deeply .gist, (1, 2, "answer" => 42).gist,   '.gist';
+        subtest '.raku', {
+            my $code = .raku; diag $code;
+            isa-ok $code, Str, 'my $code = .raku';
+            is-deeply $code.EVAL, $_, '$code.EVAL';
+        }
     }
 }
 
@@ -49,7 +64,7 @@ subtest 'infix ::', {
         cmp-ok .next, '=:=', Series.new,   '.next';
     }
 
-    my $next = 2 :: Nil;
+    my $next = (:answer(42) :: Nil);
     subtest '$value :: $next', {
         $_ := $value :: $next;
         isa-ok $_, Series:D, '$_ := $value :: $next';
@@ -58,16 +73,8 @@ subtest 'infix ::', {
         cmp-ok .next, '=:=', $next<>,      '.next';
     }
 
-    my $example = '1 :: 2 :: Nil eqv Series.new(1, 2)';
+    my $example = '(1 :: 2 :: Nil) eqv Series.new(1, 2)';
     ok $example.EVAL, $example;
-}
-
-subtest '.iterator', {
-    $_ = Mu.new :: Nil;
-    my $iterator = .iterator;
-    does-ok $iterator, Iterator, 'my $iterator = .iterator';
-    cmp-ok $iterator.pull-one, '=:=', .head,        '$iterator.pull-one';
-    cmp-ok $iterator.pull-one, '=:=', IterationEnd, '$iterator.pull-one';
 }
 
 done-testing;

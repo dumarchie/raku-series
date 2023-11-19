@@ -20,7 +20,7 @@ class Series does Iterable {
 
     multi method head(Series:D:) { $!value }
 
-    # create a new Series from a (containerized) value and an existing Series
+    # basic node constructor
     proto method insert(|) {*}
     multi method insert(Mu $value is rw) {
         Series.CREATE!SET-SELF($value<>, self);
@@ -29,8 +29,8 @@ class Series does Iterable {
         Series.CREATE!SET-SELF(value, self);
     }
 
-    # public node constructor
-    proto sub infix:<::>(|) is assoc<right> is export {*}
+    # cons operator
+    proto sub infix:<::>(|) is assoc<right> is equiv(&infix:<,>) is export {*}
     multi sub infix:<::>(Mu \value, Series:D \next --> Series:D) {
         next.insert(value);
     }
@@ -57,6 +57,15 @@ class Series does Iterable {
                 node.value;
             }
         }.new(series => self);
+    }
+
+    multi method list(Series:D: --> List:D) { self.Seq.list }
+
+    multi method gist(Series:D: --> Str:D)  { self.Seq.gist }
+
+    multi method raku(Series:D: --> Str:D)  {
+        my $values = join ' :: ', self.map: *.raku;
+        $values ?? "($values :: Nil)" !! 'Series.new';
     }
 }
 
@@ -87,13 +96,23 @@ The following operator is exported by default:
     multi sub infix:<::>(Mu \value, Series:D \next --> Series:D)
     multi sub infix:<::>(Mu \value, Nil --> Series:D)
 
-Returns a new C<Series> consisting of the decontainerized C<value> followed by
-the C<next> series or the empty series. This operator is right associative, so
+L<Constructs|#method_insert> and returns a new C<Series> consisting of the
+decontainerized C<value> followed by the C<next> series or the empty series.
+This operator is right associative, so the following statement is true:
+
+    (1 :: 2 :: Nil) eqv Series.new(1, 2);
+
+Note that the C<::> operator has the same
+L<precedence|https://docs.raku.org/language/operators#Operator_precedence> as
+the C«,» operator, so the following statements are all equivalent and I<invalid>
+because C<False> is not an acceptable right operand:
 
     1 :: 2 :: Nil eqv Series.new(1, 2);
+    1 :: 2 :: (Nil eqv Series.new(1, 2));
+    1 :: 2 :: False;
 
-Note that C<::> must be surrounded by whitespace to distinguish C<Series>
-creation from package names.
+Also note that C<::> must be surrounded by whitespace to distinguish a C<Series>
+from a package name.
 
 =head1 METHODS
 
@@ -110,8 +129,8 @@ Defined as
 
     method insert(\value --> Series:D)
 
-Returns a new C<Series> consisting of the decontainerized C<value> followed by
-the invocant series.
+This is the basic C<Series> node constructor. It returns a new node consisting
+of the decontainerized C<value> and the invocant.
 
 =head2 method Bool
 
@@ -147,5 +166,23 @@ with a proper C<Series> if you're calling C<.next> in a loop. For example:
     method iterator(Series:D: --> Iterator:D)
 
 Returns an C<Iterator> over the values in the series.
+
+=head2 method list
+
+    multi method list(Series:D: --> List:D)
+
+Coerces the series to C<List>.
+
+=head2 method gist
+
+    multi method gist(Series:D: --> Str:D)
+
+Returns a string containing the parenthesized "gist" of the series.
+
+=head2 method raku
+
+    multi method raku(Series:D: --> Str:D)
+
+Returns a string that reconstructs the series when passed to `EVAL`.
 
 =end pod
