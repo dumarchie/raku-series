@@ -9,41 +9,55 @@ class Series does Iterable {
         self;
     }
 
-    # define the empty series
+    # construct the empty series
     my \Empty = Series.CREATE;
     Empty!SET-SELF(Nil, Empty);
+
+    # public cons operator
+    proto sub infix:<::>(|) is assoc<right> is equiv(&infix:<,>) is export {*}
+    multi sub infix:<::>(Mu $var is rw, Series:D \next --> Series:D) {
+        Series.CREATE!SET-SELF($var<>, next);
+    }
+    multi sub infix:<::>(Mu \value, Series:D \next --> Series:D) {
+        Series.CREATE!SET-SELF(value, next);
+    }
+    multi sub infix:<::>(Mu $var is rw, Nil --> Series:D) {
+        Series.CREATE!SET-SELF($var<>, Empty);
+    }
+    multi sub infix:<::>(Mu \value, Nil --> Series:D) {
+        Series.CREATE!SET-SELF(value, Empty);
+    }
+
+    # public low-level node constructor
+    method insert(Mu \value --> Series:D) {
+        my \head = value.VAR =:= value ?? value !! value<>;
+        self.CREATE!SET-SELF(head, self // self.new);
+    }
+
+    # default constructor
+    multi method new( --> Series:D) { Empty }
+    multi method new(Mu :$value!, Series :$next --> Series:D) {
+        $next.insert($value);
+    }
+    multi method new(**@values is raw --> Series:D) {
+        my $self := Empty;
+        $self := $self.insert($_) for @values.reverse;
+        $self;
+    }
+
+    # provide our own method bless, rather than a public submethod BUILD, so
+    # we can constrain the "next" attribute without providing an update method
+    method bless(Mu :$value, Series :$next --> Series:D) {
+        $next.insert($value);
+    }
 
     # only the empty series is false
     multi method Bool(Series:D: --> Bool:D) {
         self !=:= Empty;
     }
 
-    multi method head(Series:D:) { $!value }
-
-    # basic node constructor
-    proto method insert(|) {*}
-    multi method insert(Mu $value is rw) {
-        Series.CREATE!SET-SELF($value<>, self);
-    }
-    multi method insert(Mu \value) {
-        Series.CREATE!SET-SELF(value, self);
-    }
-
-    # cons operator
-    proto sub infix:<::>(|) is assoc<right> is equiv(&infix:<,>) is export {*}
-    multi sub infix:<::>(Mu \value, Series:D \next --> Series:D) {
-        next.insert(value);
-    }
-    multi sub infix:<::>(Mu \value, Nil --> Series:D) {
-        Empty.insert(value);
-    }
-
-    # construct Series from argument list
-    method new(**@values is raw --> Series:D) {
-        my $self := Empty;
-        $self := $self.insert($_) for @values.reverse;
-        $self;
-    }
+    # return the raw $!value so we can check we bind to a bare value
+    multi method head(Series:D:) is raw { $!value }
 
     # provide iterator
     method iterator(Series:D: --> Iterator:D) {
@@ -79,10 +93,11 @@ Series - Purely functional linked lists
 
     class Series does Iterable {}
 
-C<Series> are immutable linked lists. A proper series consists of nodes that
-recursively link a I<value>, the C<.head> of the series, to the I<next> node.
-The last proper node links to a sentinel object representing the empty series,
-which is the only C<Series> that evaluates to C<False> in Boolean context.
+C<Series> are strongly immutable linked lists. A proper series consists of nodes
+that recursively link a I<value>, the C<.head> of the series, to the I<next>
+node. The last true node of a series links to a sentinel node representing the
+empty series. This sentinel node has no value, links to itself and is the only
+node that evaluates to C<False> in Boolean context.
 
 C<Series> are L<C<Iterable>|https://docs.raku.org/type/Iterable>, but they are
 not C<Positional> so they're not lists in the Raku sense of the word.
@@ -96,9 +111,9 @@ The following operator is exported by default:
     multi sub infix:<::>(Mu \value, Series:D \next --> Series:D)
     multi sub infix:<::>(Mu \value, Nil --> Series:D)
 
-L<Constructs|#method_insert> and returns a new C<Series> consisting of the
-decontainerized C<value> followed by the C<next> series or the empty series.
-This operator is right associative, so the following statement is true:
+Constructs and returns a new C<Series> consisting of the decontainerized
+C<value> followed by the C<next> series or the empty series. This operator is
+right associative, so the following statement is true:
 
     (1 :: 2 :: Nil) eqv Series.new(1, 2);
 
@@ -118,19 +133,32 @@ from a package name.
 
 =head2 method new
 
-    method new(**@values is raw --> Series:D)
+Defined as
 
-Returns a new C<Series> consisting of the decontainerized C<@values>, or the
-empty C<Series> if called without values.
+    multi method new(**@values is raw --> Series:D)
+    multi method new(Mu :$value!, Series :$next --> Series:D)
+    multi method new( --> Series:D)
 
-=head2 method insert
+Returns a new C<Series> consisting of the decontainerized C<@values> if called
+with positional arguments. Behaves the same as L<C<method bless>|#method_bless>
+if called with a named C<value> instead. Returns the empty series otherwise.
+
+=head2 method bless
 
 Defined as
 
-    method insert(\value --> Series:D)
+    method bless(Mu :$value, Series :$next --> Series:D)
 
-This is the basic C<Series> node constructor. It returns a new node consisting
-of the decontainerized C<value> and the invocant.
+Returns a new C<Series> consisting of the decontainerized C<$value> followed by
+the values of the C<$next> series. It's usually more straightforward to call
+L<C<$next.insert($value)>|#method_insert>.
+
+=head2 method insert
+
+    method insert(Mu \value --> Series:D)
+
+Returns a new C<Series> consisting of the decontainerized C<value> followed by
+the values of the invocant.
 
 =head2 method Bool
 
