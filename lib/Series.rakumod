@@ -9,11 +9,13 @@ class Series does Iterable {
         self;
     }
 
-    # construct the empty series
+    # The empty series is the only false Series instance
     my \Empty = Series.CREATE;
     Empty!SET-SELF(Nil, Empty);
 
-    # cons operator
+    multi method Bool(Series:D: --> Bool:D) { self !=:= Empty }
+
+    # The cons operator
     proto sub infix:<::>(|) is assoc<right> is equiv(&infix:<,>) is export {*}
     multi sub infix:<::>(Mu $var is rw, Series:D \next --> Series:D) {
         Series.CREATE!SET-SELF($var<>, next);
@@ -28,35 +30,27 @@ class Series does Iterable {
         Series.CREATE!SET-SELF(value, Empty);
     }
 
-    # public low-level node constructor
-    method insert(Mu \value --> Series:D) {
-        my \head = value.VAR =:= value ?? value !! value<>;
-        self.CREATE!SET-SELF(head, self // self.new);
-    }
-
-    # default constructor
+    # Default constructor
     multi method new( --> Series:D) { Empty }
     multi method new(**@values is raw --> Series:D) {
         my $self := Empty;
-        $self := $self.insert($_) for @values.reverse;
+        $self := $_ :: $self for @values.reverse;
         $self;
     }
 
-    # provide our own method bless, rather than a public submethod BUILD, so
-    # we can constrain the "next" attribute without providing an update method
+    # Method versions of the cons operator. Note that we
+    # provide our own method bless, rather than a public submethod BUILD,
+    # so we can constrain the "next" attribute without enabling updates.
+    method insert(Mu \value --> Series:D) { value :: self }
+
     method bless(Mu :$value, Series :$next --> Series:D) {
-        $next.insert($value);
+        $value :: $next.self;
     }
 
-    # only the empty series is false
-    multi method Bool(Series:D: --> Bool:D) {
-        self !=:= Empty;
-    }
-
-    # return the raw $!value so we can check we bind to a bare value
+    # Value accessor. It is raw, so we can check we bind to a bare value.
     multi method head(Series:D:) is raw { $!value }
 
-    # provide iterator
+    # The iterator makes series Iterable
     method iterator(Series:D: --> Iterator:D) {
         class :: does Iterator {
             has $.series;
@@ -72,11 +66,11 @@ class Series does Iterable {
 
     multi method list(Series:D: --> List:D) { self.Seq.list }
 
+    # Stringification
     multi method gist(Series:D: --> Str:D)  { self.Seq.gist }
 
     multi method raku(Series:D: --> Str:D)  {
-        my $values = join ' :: ', self.map: *.raku;
-        $values ?? "($values :: Series)" !! 'Series.new';
+        self ?? "({join ' :: ', self.map: *.raku} :: Series)" !! 'Series.new';
     }
 }
 
@@ -129,6 +123,12 @@ from a package name.
 
 =head1 METHODS
 
+=head2 method Bool
+
+    multi method Bool(Series:D: --> Bool:D)
+
+Returns C<False> if and only if the series is empty.
+
 =head2 method new
 
     multi method new( --> Series:D)
@@ -153,12 +153,6 @@ L<C<$next.insert($value)>|#method_insert>.
 
 Returns a new C<Series> consisting of the decontainerized C<value> followed by
 the values of the invocant.
-
-=head2 method Bool
-
-    multi method Bool(Series:D: --> Bool:D)
-
-Returns C<False> if and only if the series is empty.
 
 =head2 method head
 
