@@ -17,34 +17,30 @@ class Series does Iterable {
 
     # The cons operator
     proto sub infix:<::>(|) is assoc<right> is equiv(&infix:<,>) is export {*}
-    multi sub infix:<::>(Mu $var is rw, Series:D \next --> Series:D) {
-        Series.CREATE!SET-SELF($var<>, next);
-    }
     multi sub infix:<::>(Mu \value, Series:D \next --> Series:D) {
-        Series.CREATE!SET-SELF(value, next);
-    }
-    multi sub infix:<::>(Mu $var is rw, Series:U --> Series:D) {
-        Series.CREATE!SET-SELF($var<>, Empty);
+        Series.CREATE!SET-SELF(value<>, next<>);
     }
     multi sub infix:<::>(Mu \value, Series:U --> Series:D) {
-        Series.CREATE!SET-SELF(value, Empty);
+        Series.CREATE!SET-SELF(value<>, Empty);
     }
 
     # Default constructor
     multi method new( --> Series:D) { Empty }
     multi method new(**@values is raw --> Series:D) {
         my $self := Empty;
-        $self := $_ :: $self for @values.reverse;
+        $self := Series.CREATE!SET-SELF($_<>, $self) for @values.reverse;
         $self;
     }
 
     # Method versions of the cons operator. Note that we
     # provide our own method bless, rather than a public submethod BUILD,
     # so we can constrain the "next" attribute without enabling updates.
-    method insert(Mu \value --> Series:D) { value :: self }
+    method insert(Mu \value --> Series:D) {
+        Series.CREATE!SET-SELF(value<>, self // Empty);
+    }
 
     method bless(Mu :$value, Series :$next --> Series:D) {
-        $value :: $next.self;
+        $next.insert($value);
     }
 
     # Value accessor. It is raw, so we can check we bind to a bare value.
