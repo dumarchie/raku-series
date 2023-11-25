@@ -36,9 +36,6 @@ class Series does Iterable {
 
     # default constructor
     multi method new( --> Series:D) { Empty }
-    multi method new(Mu :$value!, Series :$next --> Series:D) {
-        $next.insert($value);
-    }
     multi method new(**@values is raw --> Series:D) {
         my $self := Empty;
         $self := $self.insert($_) for @values.reverse;
@@ -134,15 +131,11 @@ from a package name.
 
 =head2 method new
 
-Defined as
-
-    multi method new(**@values is raw --> Series:D)
-    multi method new(Mu :$value!, Series :$next --> Series:D)
     multi method new( --> Series:D)
+    multi method new(**@values is raw --> Series:D)
 
-Returns a new C<Series> consisting of the decontainerized C<@values> if called
-with positional arguments. Behaves the same as L<C<method bless>|#method_bless>
-if called with a named C<value> instead. Returns the empty series otherwise.
+Returns the empty series if no values are provided. Otherwise returns a new
+C<Series> consisting of the decontainerized C<@values>.
 
 =head2 method bless
 
