@@ -13,7 +13,7 @@ class Series does Iterable {
     my \Empty = Series.CREATE;
     Empty!SET-SELF(Nil, Empty);
 
-    # public cons operator
+    # cons operator
     proto sub infix:<::>(|) is assoc<right> is equiv(&infix:<,>) is export {*}
     multi sub infix:<::>(Mu $var is rw, Series:D \next --> Series:D) {
         Series.CREATE!SET-SELF($var<>, next);
@@ -21,10 +21,10 @@ class Series does Iterable {
     multi sub infix:<::>(Mu \value, Series:D \next --> Series:D) {
         Series.CREATE!SET-SELF(value, next);
     }
-    multi sub infix:<::>(Mu $var is rw, Nil --> Series:D) {
+    multi sub infix:<::>(Mu $var is rw, Series:U --> Series:D) {
         Series.CREATE!SET-SELF($var<>, Empty);
     }
-    multi sub infix:<::>(Mu \value, Nil --> Series:D) {
+    multi sub infix:<::>(Mu \value, Series:U --> Series:D) {
         Series.CREATE!SET-SELF(value, Empty);
     }
 
@@ -79,7 +79,7 @@ class Series does Iterable {
 
     multi method raku(Series:D: --> Str:D)  {
         my $values = join ' :: ', self.map: *.raku;
-        $values ?? "($values :: Nil)" !! 'Series.new';
+        $values ?? "($values :: Series)" !! 'Series.new';
     }
 }
 
@@ -108,22 +108,23 @@ The following operator is exported by default:
 
 =head2 infix ::
 
-    multi sub infix:<::>(Mu \value, Series:D \next --> Series:D)
-    multi sub infix:<::>(Mu \value, Nil --> Series:D)
+Defined as:
+
+    sub infix:<::>(Mu \value, Series \next --> Series:D)
 
 Constructs and returns a new C<Series> consisting of the decontainerized
-C<value> followed by the C<next> series or the empty series. This operator is
-right associative, so the following statement is true:
+C<value> followed by the values of the C<next> series. This operator is right
+associative, so the following statement is true:
 
-    (1 :: 2 :: Nil) eqv Series.new(1, 2);
+    (1 :: 2 :: Series) eqv Series.new(1, 2);
 
 Note that the C<::> operator has the same
 L<precedence|https://docs.raku.org/language/operators#Operator_precedence> as
 the C«,» operator, so the following statements are all equivalent and I<invalid>
 because C<False> is not an acceptable right operand:
 
-    1 :: 2 :: Nil eqv Series.new(1, 2);
-    1 :: 2 :: (Nil eqv Series.new(1, 2));
+    1 :: 2 :: Series eqv Series.new(1, 2);
+    1 :: 2 :: (Series eqv Series.new(1, 2));
     1 :: 2 :: False;
 
 Also note that C<::> must be surrounded by whitespace to distinguish a C<Series>

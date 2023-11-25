@@ -81,15 +81,15 @@ subtest 'method bless(Mu :$value, Series :$next --> Series:D)', {
 
 subtest 'infix ::', {
     my $value = Mu.new;
-    subtest '$value :: Nil', {
-        $_ := $value :: Nil;
+    subtest '$value :: Series', {
+        $_ := $value :: Series;
         isa-ok $_, Series:D, '$_ := $value :: Nil';
         cmp-ok .Bool, '=:=', True,         '.Bool';
         cmp-ok .head, '=:=', $value<>,     '.head';
         cmp-ok .next, '=:=', Series.new,   '.next';
     }
 
-    my $next = (:answer(42) :: Nil);
+    my $next = (:answer(42) :: Series);
     subtest '$value :: $next', {
         $_ := $value :: $next;
         isa-ok $_, Series:D, '$_ := $value :: $next';
@@ -98,7 +98,7 @@ subtest 'infix ::', {
         cmp-ok .next, '=:=', $next<>,      '.next';
     }
 
-    my $example = '(1 :: 2 :: Nil) eqv Series.new(1, 2)';
+    my $example = '(1 :: 2 :: Series) eqv Series.new(1, 2)';
     ok $example.EVAL, $example;
 }
 
