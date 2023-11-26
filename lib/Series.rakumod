@@ -17,27 +17,27 @@ class Series does Iterable {
 
     # The cons operator
     proto sub infix:<::>(|) is assoc<right> is equiv(&infix:<,>) is export {*}
-    multi sub infix:<::>(Mu \value, Series:D \next --> Series:D) {
-        Series.CREATE!SET-SELF(value<>, next<>);
+    multi sub infix:<::>(Mu \item, Series:D \next --> Series:D) {
+        Series.CREATE!SET-SELF(item<>, next<>);
     }
-    multi sub infix:<::>(Mu \value, Series:U --> Series:D) {
-        Series.CREATE!SET-SELF(value<>, Empty);
+    multi sub infix:<::>(Mu \item, Series:U --> Series:D) {
+        Series.CREATE!SET-SELF(item<>, Empty);
     }
 
     # Default constructor
     multi method new( --> Series:D) { Empty }
-    multi method new(**@values is raw --> Series:D) {
+    multi method new(**@items is raw --> Series:D) {
         my $self := Empty;
-        $self := Series.CREATE!SET-SELF($_<>, $self) for @values.reverse;
+        $self := Series.CREATE!SET-SELF($_<>, $self) for @items.reverse;
         $self;
     }
 
     # Method versions of the cons operator. Note that we
     # provide our own method bless, rather than a public submethod BUILD,
     # so we can constrain the "next" attribute without enabling updates.
-    method insert(Mu \value --> Series:D) {
-        my $value := value.VAR =:= value ?? value !! value<>;
-        Series.CREATE!SET-SELF($value, self // Empty);
+    method insert(Mu \item --> Series:D) {
+        my \value = item.VAR =:= item ?? item !! item<>;
+        Series.CREATE!SET-SELF(value, self // Empty);
     }
 
     method bless(Mu :$value, Series :$next --> Series:D) {
@@ -98,11 +98,11 @@ The following operator is exported by default:
 
 Defined as:
 
-    sub infix:<::>(Mu \value, Series \next --> Series:D)
+    sub infix:<::>(Mu \item, Series \next --> Series:D)
 
-Constructs and returns a new C<Series> consisting of the decontainerized
-C<value> followed by the values of the C<next> series. This operator is right
-associative, so the following statement is true:
+Constructs and returns a new C<Series> consisting of the decontainerized C<item>
+followed by the values of the C<next> series. This operator is right associative
+so the following statement is true:
 
     (1 :: 2 :: Series) eqv Series.new(1, 2);
 
@@ -129,10 +129,10 @@ Returns C<False> if and only if the series is empty.
 =head2 method new
 
     multi method new( --> Series:D)
-    multi method new(**@values is raw --> Series:D)
+    multi method new(**@items is raw --> Series:D)
 
-Returns the empty series if no values are provided. Otherwise returns a new
-C<Series> consisting of the decontainerized C<@values>.
+Returns the empty series if no items are provided. Otherwise returns a new
+C<Series> consisting of the decontainerized C<@items>.
 
 =head2 method bless
 
@@ -146,9 +146,9 @@ L<C<$next.insert($value)>|#method_insert>.
 
 =head2 method insert
 
-    method insert(Mu \value --> Series:D)
+    method insert(Mu \item --> Series:D)
 
-Returns a new C<Series> consisting of the decontainerized C<value> followed by
+Returns a new C<Series> consisting of the decontainerized C<item> followed by
 the values of the invocant.
 
 =head2 method head
