@@ -36,7 +36,8 @@ class Series does Iterable {
     # provide our own method bless, rather than a public submethod BUILD,
     # so we can constrain the "next" attribute without enabling updates.
     method insert(Mu \value --> Series:D) {
-        Series.CREATE!SET-SELF(value<>, self // Empty);
+        my $value := value.VAR =:= value ?? value !! value<>;
+        Series.CREATE!SET-SELF($value, self // Empty);
     }
 
     method bless(Mu :$value, Series :$next --> Series:D) {
