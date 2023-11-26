@@ -15,13 +15,18 @@ class Series does Iterable {
 
     multi method Bool(Series:D: --> Bool:D) { self !=:= Empty }
 
-    # The cons operator
+    # Low-level constructors
+    method insert(Mu \item --> Series:D) {
+        my \value = item.VAR =:= item ?? item !! item<>;
+        Series.CREATE!SET-SELF(value, self // Empty);
+    }
+
     proto sub infix:<::>(|) is assoc<right> is equiv(&infix:<,>) is export {*}
     multi sub infix:<::>(Mu \item, Series:D \next --> Series:D) {
-        Series.CREATE!SET-SELF(item<>, next<>);
+        next.insert(item);
     }
     multi sub infix:<::>(Mu \item, Series:U --> Series:D) {
-        Series.CREATE!SET-SELF(item<>, Empty);
+        Empty.insert(item);
     }
 
     # Default constructor
@@ -32,14 +37,8 @@ class Series does Iterable {
         $self;
     }
 
-    # Method versions of the cons operator. Note that we
-    # provide our own method bless, rather than a public submethod BUILD,
+    # Provide our own method bless, rather than a public submethod BUILD,
     # so we can constrain the "next" attribute without enabling updates.
-    method insert(Mu \item --> Series:D) {
-        my \value = item.VAR =:= item ?? item !! item<>;
-        Series.CREATE!SET-SELF(value, self // Empty);
-    }
-
     method bless(Mu :$value, Series :$next --> Series:D) {
         $next.insert($value);
     }

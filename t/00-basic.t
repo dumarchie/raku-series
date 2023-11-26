@@ -14,6 +14,21 @@ subtest 'multi method new( --> Series:D)', {
     cmp-ok .next, '=:=', $_,    '.next';
 }
 
+subtest 'method insert(Mu \value --> Series:D)', {
+    my $code   = 'Series.insert($var)';
+    my $var    = Mu.new;
+    my $series = $code.EVAL;
+    isa-ok $series, Series:D, "\$series = $code";
+    cmp-ok $series.head, '=:=', $var<>,     '$series.head';
+    cmp-ok $series.next, '=:=', Series.new, '$series.next';
+
+    my $code2   = '$series.insert(Empty)';
+    my $series2 = $code2.EVAL;
+    isa-ok $series2, Series:D, "\$series2 = $code2";
+    cmp-ok $series2.head, '=:=', Empty,     '$series2.head';
+    cmp-ok $series2.next, '=:=', $series<>, '$series2.next';
+}
+
 subtest 'sub infix:<::>(Mu \value, Series \next --> Series:D)', {
     subtest my $code = '$var :: Series', {
         my $var = Mu.new;
@@ -42,21 +57,6 @@ subtest 'sub infix:<::>(Mu \value, Series \next --> Series:D)', {
         ok (not 0 :: Series).head, 'precedence is less than that of prefix not';
         isa-ok (0, 42 :: Series), List, 'precedence is same as that of infix ,';
     }
-}
-
-subtest 'method insert(Mu \value --> Series:D)', {
-    my $code   = 'Series.insert($var)';
-    my $var    = Mu.new;
-    my $series = $code.EVAL;
-    isa-ok $series, Series:D, "\$series = $code";
-    cmp-ok $series.head, '=:=', $var<>,     '$series.head';
-    cmp-ok $series.next, '=:=', Series.new, '$series.next';
-
-    my $code2   = '$series.insert(Empty)';
-    my $series2 = $code2.EVAL;
-    isa-ok $series2, Series:D, "\$series2 = $code2";
-    cmp-ok $series2.head, '=:=', Empty,     '$series2.head';
-    cmp-ok $series2.next, '=:=', $series<>, '$series2.next';
 }
 
 subtest 'method bless(Mu :$value, Series :$next --> Series:D)', {

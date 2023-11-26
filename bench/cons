@@ -4,7 +4,7 @@ use v6.d;
 use lib 'lib';
 use Series;
 
-constant Format = "%-54s: %0.3fs\n";
+constant Format = "%-56s%0.3fs\n";
 sub benchmark(&work, $desc) {
     work;
     printf Format, $desc, now - ENTER now;
