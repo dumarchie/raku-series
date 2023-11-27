@@ -6,31 +6,37 @@ use Series;
 
 constant Format = "%-60s%0.3fs\n";
 sub benchmark(&work, $desc) {
-    work;
+    my \result = work;
     printf Format, $desc, now - ENTER now;
+    result;
 }
 
-my %Cons = (
-  'infix ::' => {
+my %Build = (
+  operator => {
       my Series $series;
       benchmark {
           $series := $_ :: $series for (^$_).reverse;
+          $series;
       }, "Use infix :: to create a Series of $_ nodes";
   },
   insert => {
       my Series $series;
       benchmark {
           $series := $series.insert($_) for (^$_).reverse;
+          $series;
       }, "Use .insert(value) to create a Series of $_ nodes";
   },
   slip => {
-      my \values = ^$_;
       benchmark {
-          Series.new(slip values);
+          Series.new(slip ^$_);
       }, "Use .new(slip values) to create a Series of $_ nodes";
   }
 );
 
-sub MAIN(Int() :$n = 2 ** 22, :$method) {
-    %Cons{$method // 'infix ::'}($n);
+enum Build <insert operator slip>;
+sub MAIN(
+  Int() :$nodes  = 3E6,      #= number of nodes in the series
+  Build :$method = operator, #= method to create the series
+) {
+    my $series := %Build{$method}($nodes);
 }
