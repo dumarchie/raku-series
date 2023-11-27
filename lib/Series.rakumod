@@ -1,8 +1,8 @@
 use v6.d;
 
 class Series does Iterable {
-    has $.value;
-    has $.next;
+    has $!value;
+    has $!next;
     method !SET-SELF(Mu \value, \next) {
         $!value := value;
         $!next  := next;
@@ -46,14 +46,9 @@ class Series does Iterable {
         $self;
     }
 
-    # Provide our own method bless, rather than a public submethod BUILD,
-    # so we can constrain the "next" attribute without enabling updates.
-    method bless(Mu :$value, Series :$next --> Series:D) {
-        $next.insert($value);
-    }
-
-    # Value accessor. It is raw, so we can check we bind to a bare value.
+    # Access raw attributes, so we can check we bind to a bare value
     multi method head(Series:D:) is raw { $!value }
+    method next(Series:D:) is raw { $!next }
 
     # The iterator makes series Iterable
     method iterator(Series:D: --> Iterator:D) {
@@ -64,7 +59,7 @@ class Series does Iterable {
                   or return IterationEnd;
 
                 $!series := node.next;
-                node.value;
+                node.head;
             }
         }.new(series => self);
     }
@@ -143,16 +138,6 @@ Defined as
 Returns the empty series if no items are provided. Otherwise returns a new
 C<Series> consisting of the decontainerized C<@items>.
 
-=head2 method bless
-
-Defined as
-
-    method bless(Mu :$value, Series :$next --> Series:D)
-
-Returns a new C<Series> consisting of the decontainerized C<$value> followed by
-the values of the C<$next> series. It's usually more straightforward to call
-L<C<$next.insert($value)>|#method_insert>.
-
 =head2 method insert
 
     method insert(Mu \item --> Series:D)
@@ -205,6 +190,8 @@ Returns a string containing the parenthesized "gist" of the series.
 
     multi method raku(Series:D: --> Str:D)
 
-Returns a string that reconstructs the series when passed to `EVAL`.
+Returns a string that can be used to reconstruct the series via `EVAL`. Note
+that this works only if all values provide a `.raku` that allows them to be
+reconstructed this way.
 
 =end pod

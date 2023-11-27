@@ -59,30 +59,6 @@ subtest 'sub infix:<::>(Mu \value, Series \next --> Series:D)', {
     }
 }
 
-subtest 'method bless(Mu :$value, Series :$next --> Series:D)', {
-    my $code   = 'Series.bless';
-    my $series = $code.EVAL;
-    isa-ok $series, Series:D, "\$series = $code";
-    cmp-ok $series.head, '=:=', Mu,         '$series.head';
-    cmp-ok $series.next, '=:=', Series.new, '$series.next';
-
-    # assert there's no method BUILD that may overwrite attributes
-    my $var = Mu.new;
-    throws-like { $series.BUILD(value => $var) }, X::Method::NotFound,
-      :method<BUILD>, :typename<Series>, "No method 'BUILD'";
-
-    # assert attributes are initialized with the provided values
-    my $code2   = 'Series.bless(value => $var, next => $series)';
-    my $series2 = $code2.EVAL;
-    isa-ok $series2, Series:D, "\$series2 = $code2";
-    cmp-ok $series2.head, '=:=', $var<>,    '$series2.head';
-    cmp-ok $series2.next, '=:=', $series<>, '$series2.next';
-
-    # assert the value of the "next" attribute is constrained to Series
-    my $code3 = 'Series.bless(next => 42)';
-    throws-like $code3, X::TypeCheck::Binding::Parameter, $code3;
-}
-
 subtest 'method new', {
     my $code = 'Series.new(Empty)';
     cmp-ok $code.EVAL, '=:=', Series.new, $code;
