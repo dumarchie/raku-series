@@ -31,8 +31,17 @@ class Series does Iterable {
 
     # Default constructor
     multi method new( --> Series:D) { Empty }
+    multi method new(Mu \item --> Series:D) {
+        Empty.insert(item);
+    }
+    multi method new(Slip \items --> Series:D) {
+        Empty!insert-list(items);
+    }
     multi method new(**@items is raw --> Series:D) {
-        my $self := Empty;
+        Empty!insert-list(@items);
+    }
+    method !insert-list(@items) {
+        my $self := self;
         $self := $self.insert($_) for @items.reverse;
         $self;
     }
@@ -127,8 +136,9 @@ Returns C<False> if and only if the series is empty.
 
 =head2 method new
 
-    multi method new( --> Series:D)
-    multi method new(**@items is raw --> Series:D)
+Defined as
+
+    multi method new(**@items --> Series:D)
 
 Returns the empty series if no items are provided. Otherwise returns a new
 C<Series> consisting of the decontainerized C<@items>.
