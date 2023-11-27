@@ -33,7 +33,7 @@ class Series does Iterable {
     multi method new( --> Series:D) { Empty }
     multi method new(**@items is raw --> Series:D) {
         my $self := Empty;
-        $self := Series.CREATE!SET-SELF($_<>, $self) for @items.reverse;
+        $self := $self.insert($_) for @items.reverse;
         $self;
     }
 
