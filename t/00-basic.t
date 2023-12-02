@@ -83,11 +83,14 @@ my \values = 1, 2, 3;
 my \series = Series.new(|values);
 
 subtest '.elems', {
-    cmp-ok Series.elems, '==', 0, '.elems';
-    cmp-ok series.elems, '==', 3, '.elems';
+    cmp-ok Series.elems, '==', 0, 'Series.elems';
+    cmp-ok series.elems, '==', 3, 'series.elems';
 }
 
-is-deeply series.list, values, '.list';
+subtest '.list', {
+    is-deeply Series.list, List.new, 'Series.list';
+    is-deeply series.list, values,   'series.list';
+}
 
 is series.gist, values.gist, '.gist';
 

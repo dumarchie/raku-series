@@ -46,12 +46,20 @@ class Series does Iterable {
         $self;
     }
 
-    # Access raw attributes, so we can check we bind to a bare value
+    # Access the raw attributes, so we can check we bind to a bare value
     multi method head(Series:D:) is raw { $!value }
     method next(Series:D:) is raw { $!next }
 
+    # Note that the type object is a valid representation of the empty series
+    method elems( --> Int:D) {
+        my $node := self or return 0;
+        my int $elems = 1;
+        $elems++ while $node := $node.next;
+        $elems;
+    }
+
     # The iterator makes series Iterable
-    method iterator(Series:D: --> Iterator:D) {
+    method iterator( --> Iterator:D) {
         class :: does Iterator {
             has $.series;
             method pull-one() {
@@ -64,20 +72,11 @@ class Series does Iterable {
         }.new(series => self);
     }
 
-    # Unlike List.elems, Series.elems returns 0 because
-    # the Series type object is a valid representation of the empty series
-    method elems( --> Int:D) {
-        my $node := self or return 0;
-        my int $elems = 1;
-        $elems++ while $node := $node.next;
-        $elems;
-    }
+    method list( --> List:D) { self.Seq.list }
 
-    multi method list(Series:D: --> List:D) { self.Seq.list }
+    multi method gist(Series:D: --> Str:D) { self.Seq.gist }
 
-    multi method gist(Series:D: --> Str:D)  { self.Seq.gist }
-
-    multi method raku(Series:D: --> Str:D)  {
+    multi method raku(Series:D: --> Str:D) {
         self ?? "({join ' :: ', self.map: *.raku} :: Series)" !! 'Series.new';
     }
 }
@@ -184,13 +183,13 @@ Returns the number of values in the series.
 
 =head2 method iterator
 
-    method iterator(Series:D: --> Iterator:D)
+    method iterator( --> Iterator:D)
 
 Returns an C<Iterator> over the values in the series.
 
 =head2 method list
 
-    multi method list(Series:D: --> List:D)
+    method list( --> List:D)
 
 Coerces the series to C<List>.
 
