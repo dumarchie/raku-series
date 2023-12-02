@@ -64,9 +64,17 @@ class Series does Iterable {
         }.new(series => self);
     }
 
+    # Unlike List.elems, Series.elems returns 0 because
+    # the Series type object is a valid representation of the empty series
+    method elems( --> Int:D) {
+        my $node := self or return 0;
+        my int $elems = 1;
+        $elems++ while $node := $node.next;
+        $elems;
+    }
+
     multi method list(Series:D: --> List:D) { self.Seq.list }
 
-    # Stringification
     multi method gist(Series:D: --> Str:D)  { self.Seq.gist }
 
     multi method raku(Series:D: --> Str:D)  {
@@ -167,6 +175,12 @@ with a proper C<Series> if you're calling C<.next> in a loop. For example:
     print "\n";
 
     # OUTPUT: «123␤»
+
+=head2 method elems
+
+    method elems( --> Int:D)
+
+Returns the number of values in the series.
 
 =head2 method iterator
 

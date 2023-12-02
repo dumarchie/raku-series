@@ -39,4 +39,7 @@ sub MAIN(
   Build :$method = operator, #= method to create the series
 ) {
     my $series := %Build{$method}($nodes);
+    benchmark {
+        $series.elems;
+    }, "Use .elems to count nodes";
 }

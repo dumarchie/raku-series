@@ -82,6 +82,11 @@ subtest 'method new', {
 my \values = 1, 2, 3;
 my \series = Series.new(|values);
 
+subtest '.elems', {
+    cmp-ok Series.elems, '==', 0, '.elems';
+    cmp-ok series.elems, '==', 3, '.elems';
+}
+
 is-deeply series.list, values, '.list';
 
 is series.gist, values.gist, '.gist';
