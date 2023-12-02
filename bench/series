@@ -33,13 +33,26 @@ my %Build = (
   }
 );
 
-enum Build <insert operator slip>;
+my %Traversal = (
+  elems => sub ($series) {
+      benchmark {
+          $series.elems;
+      }, '.elems';
+  },
+  list => sub ($series) {
+      benchmark {
+          $series.list.elems;
+      }, '.list.elems';
+  },
+);
+
+enum Build     <insert operator slip>;
+enum Traversal <elems list>;
 sub MAIN(
-  Int() :$nodes  = 3E6,      #= number of nodes in the series
-  Build :$method = operator, #= method to create the series
+  Int()     :$nodes  = 3E6,      #= number of nodes in the series
+  Build     :$method = operator, #= method to create the series
+  Traversal :$assess = elems,    #= traversal method to assess
 ) {
     my $series := %Build{$method}($nodes);
-    benchmark {
-        $series.elems;
-    }, "Use .elems to count nodes";
+    %Traversal{$assess}($series);
 }
