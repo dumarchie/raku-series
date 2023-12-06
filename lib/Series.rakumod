@@ -1,54 +1,37 @@
 use v6.d;
 
-class Series does Iterable {
-    has $!value;
-    has $!next;
-    method !SET-SELF(Mu \value, \next) {
-        $!value := value;
-        $!next  := next;
-        self;
-    }
+# To be defined in due time:
+my $Empty; # the Series::End singleton
+my &cons;  # protected Series::Node constructor
 
-    # The empty series is the only false Series instance
-    my \Empty = Series.CREATE;
-    Empty!SET-SELF(Nil, Empty);
-
-    multi method Bool(Series:D: --> Bool:D) { self !=:= Empty }
-
+role Series does Iterable {
     # Low-level constructors
     method insert(Mu \item --> Series:D) {
         my \value = item.VAR =:= item ?? item !! item<>;
-        Series.CREATE!SET-SELF(value, self // Empty);
+        cons(value, self // $Empty);
     }
 
     proto sub infix:<::>(|) is assoc<right> is equiv(&infix:<,>) is export {*}
-    multi sub infix:<::>(Mu \item, Series:D \next --> Series:D) {
+    multi sub infix:<::>(Mu \item, Series \next --> Series:D) {
         next.insert(item);
-    }
-    multi sub infix:<::>(Mu \item, Series:U --> Series:D) {
-        Empty.insert(item);
     }
 
     # Default constructor
-    multi method new( --> Series:D) { Empty }
+    multi method new( --> Series:D) { $Empty }
     multi method new(Mu \item --> Series:D) {
-        Empty.insert(item);
+        $Empty.insert(item);
     }
     multi method new(Slip \items --> Series:D) {
-        Empty!insert-list(items);
+        $Empty!insert-list(items);
     }
     multi method new(**@items is raw --> Series:D) {
-        Empty!insert-list(@items);
+        $Empty!insert-list(@items);
     }
     method !insert-list(@items) {
         my $self := self;
         $self := $self.insert($_) for @items.reverse;
         $self;
     }
-
-    # Access the raw attributes, so we can check we bind to a bare value
-    multi method head(Series:D:) is raw { $!value }
-    method next(Series:D:) is raw { $!next }
 
     # Note that the type object is a valid representation of the empty series
     method elems( --> Int:D) {
@@ -81,6 +64,31 @@ class Series does Iterable {
     }
 }
 
+# The empty series is the only false Series instance
+$Empty := class Series::End does Series {
+    multi method Bool(Series:D: --> False) {}
+    multi method head(Series:D:) { Nil }
+    method next(Series:D: --> Series:D) { self }
+}.CREATE;
+
+class Series::Node does Series {
+    has $!value;
+    has $!next;
+    method !SET-SELF(Mu \value, \next) {
+        $!value := value;
+        $!next  := next;
+        self;
+    }
+
+    &cons = sub (Mu \value, Series:D \next) {
+        ::?CLASS.CREATE!SET-SELF(value, next);
+    }
+
+    # Access the raw attributes, so we can check we bind to a bare value
+    multi method head(Series:D:) is raw { $!value }
+    method next(Series:D:) is raw { $!next }
+}
+
 =begin pod
 
 =head1 NAME
@@ -89,13 +97,12 @@ Series - Purely functional linked lists
 
 =head1 DESCRIPTION
 
-    class Series does Iterable {}
+    role Series does Iterable {}
 
-C<Series> are strongly immutable linked lists. A proper series consists of nodes
-that recursively link a I<value>, the C<.head> of the series, to the I<next>
-node. The last true node of a series links to a sentinel node representing the
-empty series. This sentinel node has no value, links to itself and is the only
-node that evaluates to C<False> in Boolean context.
+C<Series> are strongly immutable linked lists. A proper series consists of
+nodes that recursively link a I<value>, the C<.head> of the series, to the
+I<next> node. The last node of a series links to the empty series, which has no
+value, links to itself, and evaluates to C<False> in Boolean context.
 
 C<Series> are L<C<Iterable>|https://docs.raku.org/type/Iterable>, but they are
 not C<Positional> so they're not lists in the Raku sense of the word.
@@ -129,12 +136,6 @@ Also note that C<::> must be surrounded by whitespace to distinguish a C<Series>
 from a package name.
 
 =head1 METHODS
-
-=head2 method Bool
-
-    multi method Bool(Series:D: --> Bool:D)
-
-Returns C<False> if and only if the series is empty.
 
 =head2 method new
 
