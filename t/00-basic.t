@@ -4,14 +4,15 @@ use Test;
 use lib 'lib';
 use Series;
 
-subtest 'multi method new( --> Series:D)', {
-    my $code = 'Series.new';
-    $_ := $code.EVAL;
-    isa-ok $_, Series:D, $code;
-    cmp-ok $code.EVAL, '=:=', $_, "$code always returns the same object";
-    cmp-ok .Bool, '=:=', False, '.Bool'; # it's never new ;)
-    cmp-ok .head, '=:=', Nil,   '.head';
-    cmp-ok .next, '=:=', $_,    '.next';
+subtest 'empty series', {
+    cmp-ok Series.head, '=:=', Nil, 'Series.head';
+
+    my $series := Series.next;
+    isa-ok $series, Series:D, '$series := Series.next';
+    cmp-ok $series.Bool, '=:=', False,   '$series.Bool';
+    cmp-ok $series.head, '=:=', Nil,     '$series.head';
+    cmp-ok $series.next, '=:=', $series, '$series.next';
+    cmp-ok Series.new,   '=:=', $series, 'Series.new';
 }
 
 subtest 'method insert(Mu \value --> Series:D)', {

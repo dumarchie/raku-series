@@ -5,6 +5,10 @@ my $Empty; # the Series::End singleton
 my &cons;  # protected Series::Node constructor
 
 role Series does Iterable {
+    # Properties of the empty series
+    multi method head() { Nil }
+    method next() { $Empty }
+
     # Low-level constructors
     proto method insert(|) {*}
     multi method insert(Series:U: Mu \item) {
@@ -71,8 +75,6 @@ role Series does Iterable {
 # The empty series is the only false Series instance
 $Empty := class Series::End does Series {
     multi method Bool(Series:D: --> False) {}
-    multi method head(Series:D:) { Nil }
-    method next(Series:D: --> Series:D) { self }
 }.CREATE;
 
 class Series::Node does Series {
@@ -89,7 +91,7 @@ class Series::Node does Series {
     }
 
     # Access the raw attributes, so we can check we bind to a bare value
-    multi method head(Series:D:) is raw { $!value }
+    multi method head() is raw { $!value }
     method next(Series:D:) is raw { $!next }
 }
 
