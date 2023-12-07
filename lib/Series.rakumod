@@ -6,9 +6,13 @@ my &cons;  # protected Series::Node constructor
 
 role Series does Iterable {
     # Low-level constructors
-    method insert(Mu \item --> Series:D) {
+    proto method insert(|) {*}
+    multi method insert(Series:U: Mu \item) {
+        $Empty.insert(item);
+    }
+    multi method insert(Series:D: Mu \item) {
         my \value = item.VAR =:= item ?? item !! item<>;
-        cons(value, self // $Empty);
+        cons(value, self);
     }
 
     proto sub infix:<::>(|) is assoc<right> is equiv(&infix:<,>) is export {*}
@@ -148,7 +152,8 @@ C<Series> consisting of the decontainerized C<@items>.
 
 =head2 method insert
 
-    method insert(Mu \item --> Series:D)
+    multi method insert(Series:U: Mu \item)
+    multi method insert(Series:D: Mu \item)
 
 Returns a new C<Series> consisting of the decontainerized C<item> followed by
 the values of the invocant.
