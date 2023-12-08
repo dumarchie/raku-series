@@ -16,11 +16,14 @@ subtest 'empty series', {
 }
 
 subtest 'method insert(Mu \value --> Series:D)', {
+    my \value  = Mu.new;
     my $code   = 'Series.insert($var)';
-    my $var    = Mu.new;
+    my $var    = value;
     my $series = $code.EVAL;
     isa-ok $series, Series:D, "\$series = $code";
-    cmp-ok $series.head, '=:=', $var<>,     '$series.head';
+
+    $var = 42;
+    cmp-ok $series.head, '=:=', value,      '$series.head';
     cmp-ok $series.next, '=:=', Series.new, '$series.next';
 
     my $code2   = '$series.insert(Empty)';

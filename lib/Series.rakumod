@@ -6,8 +6,8 @@ my &cons;  # protected Series::Node constructor
 
 role Series does Iterable {
     # Properties of the empty series
-    multi method head() { Nil }
-    method next() { $Empty }
+    method value() { Nil }
+    method next( --> Series:D) { $Empty }
 
     # Low-level constructors
     proto method insert(|) {*}
@@ -41,14 +41,6 @@ role Series does Iterable {
         $self;
     }
 
-    # Note that the type object is a valid representation of the empty series
-    method elems( --> Int:D) {
-        my $node := self or return 0;
-        my int $elems = 1;
-        $elems++ while $node := $node.next;
-        $elems;
-    }
-
     # The iterator makes series Iterable
     method iterator( --> Iterator:D) {
         class :: does Iterator {
@@ -58,13 +50,25 @@ role Series does Iterable {
                   or return IterationEnd;
 
                 $!series := node.next;
-                node.head;
+                node.value;
             }
         }.new(series => self);
     }
 
+    # Specialized Iterable methods
+    # Note that the type object is a valid representation of the empty series.
+    method elems( --> Int:D) {
+        my $node := self or return 0;
+        my int $elems = 1;
+        $elems++ while $node := $node.next;
+        $elems;
+    }
+
+    multi method head() { self.value }
+
     method list( --> List:D) { self.Seq.list }
 
+    # Stringification
     multi method gist(Series:D: --> Str:D) { self.Seq.gist }
 
     multi method raku(Series:D: --> Str:D) {
@@ -86,13 +90,13 @@ class Series::Node does Series {
         self;
     }
 
-    &cons = sub (Mu \value, Series:D \next) {
+    &cons = sub (Mu \value, \next) {
         ::?CLASS.CREATE!SET-SELF(value, next);
     }
 
-    # Access the raw attributes, so we can check we bind to a bare value
-    multi method head() is raw { $!value }
-    method next(Series:D:) is raw { $!next }
+    # Node properties
+    method value(Series:D:) { $!value }
+    method next(Series:D: --> Series:D) { $!next }
 }
 
 =begin pod
@@ -160,19 +164,14 @@ C<Series> consisting of the decontainerized C<@items>.
 Returns a new C<Series> consisting of the decontainerized C<item> followed by
 the values of the invocant.
 
-=head2 method head
-
-    multi method head(Series:D:)
-
-Returns the value at the head of the series, or C<Nil> if the series is empty.
-
 =head2 method next
 
-    method next(Series:D:)
+    method next( --> Series:D:)
 
 Returns the C<Series> following the L<C<.head>|#method_head> of the invocant.
-Note that this is the invocant self if empty, so you better check you're dealing
-with a proper C<Series> if you're calling C<.next> in a loop. For example:
+Note that C<.next> returns the empty series if called on an empty series, so
+always check you're dealing with a proper C<Series> if you're calling C<.next>
+in a loop. For example:
 
     my $series = Series.new(1, 2, 3);
     while $series {
@@ -183,17 +182,23 @@ with a proper C<Series> if you're calling C<.next> in a loop. For example:
 
     # OUTPUT: «123␤»
 
+=head2 method iterator
+
+    method iterator( --> Iterator:D)
+
+Returns an C<Iterator> over the values in the series.
+
 =head2 method elems
 
     method elems( --> Int:D)
 
 Returns the number of values in the series.
 
-=head2 method iterator
+=head2 method head
 
-    method iterator( --> Iterator:D)
+    multi method head()
 
-Returns an C<Iterator> over the values in the series.
+Returns the value at the head of the series, or C<Nil> if the series is empty.
 
 =head2 method list
 
