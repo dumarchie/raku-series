@@ -9,7 +9,7 @@ subtest 'empty series', {
 
     my $series := Series.next;
     isa-ok $series, Series:D, '$series := Series.next';
-    cmp-ok $series.Bool, '=:=', False,   '$series.Bool';
+    cmp-ok $series.Bool, '===', False,   '$series.Bool';
     cmp-ok $series.head, '=:=', Nil,     '$series.head';
     cmp-ok $series.next, '=:=', $series, '$series.next';
     cmp-ok Series.new,   '=:=', $series, 'Series.new';

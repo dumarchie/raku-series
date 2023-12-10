@@ -12,7 +12,7 @@ sub benchmark(&work, $desc) {
 }
 
 my %Build = (
-  operator => {
+  infix => {
       my Series $series;
       benchmark {
           $series := $_ :: $series for (^$_).reverse;
@@ -26,7 +26,7 @@ my %Build = (
           $series;
       }, "Use .insert(value) to create a Series of $_ nodes";
   },
-  slip => {
+  new => {
       benchmark {
           Series.new(slip ^$_);
       }, "Use .new(slip values) to create a Series of $_ nodes";
@@ -46,11 +46,11 @@ my %Traversal = (
   },
 );
 
-enum Build     <insert operator slip>;
+enum Build     <infix insert new>;
 enum Traversal <elems list>;
 sub MAIN(
   Int()     :$nodes  = 3E6,      #= number of nodes in the series
-  Build     :$method = operator, #= method to create the series
+  Build     :$method = infix, #= method to create the series
   Traversal :$assess = elems,    #= traversal method to assess
 ) {
     my $series := %Build{$method}($nodes);
