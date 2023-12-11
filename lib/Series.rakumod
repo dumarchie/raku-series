@@ -1,5 +1,9 @@
 use v6.d;
 
+# Define fast decont operator
+proto sub postfix:«<>»(|) {*}
+multi sub postfix:«<>»(Mu \item) { item }
+
 class Series does Iterable {
     has $!value;
     has $!next;
@@ -50,8 +54,7 @@ class Series does Iterable {
         Empty.insert(item);
     }
     multi method insert(Series:D: Mu \item --> Series:D) {
-        my \value = item.VAR =:= item ?? item !! item<>;
-        ::?CLASS.CREATE!SET-SELF(value, self);
+        ::?CLASS.CREATE!SET-SELF(item<>, self);
     }
 
     # The iterator makes series Iterable
@@ -99,13 +102,13 @@ Series - Purely functional linked lists
 
     class Series does Iterable {}
 
-C<Series> are strongly immutable linked lists. A proper series consists of
-nodes that recursively link a I<value>, the C<.head> of the series, to the
-I<next> node. The last node of a series links to the empty series, which has no
-value, links to itself, and evaluates to C<False> in Boolean context.
+C<Series> are strongly immutable linked lists. A series consists of nodes that
+recursively link a I<value>, the C<.head> of the series, to the I<next> node.
+The last node of a series links to the empty series, the only C<Series> object
+instance that evaluates to C<False> in Boolean context.
 
-C<Series> are L<C<Iterable>|https://docs.raku.org/type/Iterable>, but they are
-not C<Positional> so they're not lists in the Raku sense of the word.
+While C<Series> are L<C<Iterable>|https://docs.raku.org/type/Iterable>, they're
+not C<Positional>, so they're not "lists" in the Raku sense of the word.
 
 =head1 OPERATORS
 
