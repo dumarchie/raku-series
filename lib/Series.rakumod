@@ -25,7 +25,9 @@ class Series does Iterable {
 
     proto method next(|) {*}
     multi method next(Series:U: --> Series:D) { Empty }
-    multi method next(Series:D: --> Series:D) { $!next }
+    multi method next(Series:D: --> Series:D) {
+        $!next.VAR =:= $!next ?? $!next !! ($!next := $!next());
+    }
 
     # Constructors
     proto sub infix:<::>(|) is assoc<right> is equiv(&infix:<,>) is export {*}
@@ -55,6 +57,35 @@ class Series does Iterable {
     }
     multi method insert(Series:D: Mu \item --> Series:D) {
         ::?CLASS.CREATE!SET-SELF(item<>, self);
+    }
+
+    # Concatenation
+    method prepend(Iterable \items) is raw {
+        my \iter = items.iterator;
+        my \lock = Lock.new;
+        my &next = {
+            my &node = {
+                my \item = iter.pull-one;
+                item =:= IterationEnd
+                  ?? self // Empty
+                  !! ::?CLASS.CREATE!SET-SELF(item<>, next);
+            };
+            my $state = {
+                lock.protect({
+                    $state.VAR =:= $state ?? $state !! ($state := node);
+                });
+            };
+        };
+
+        my $state := next;
+        Proxy.new(
+          FETCH => method () {
+              $state.VAR =:= $state ?? $state !! ($state := $state());
+          },
+          STORE => method ($) {
+              die "Cannot assign to an immutable Series";
+          },
+        );
     }
 
     # The iterator makes series Iterable
@@ -96,7 +127,7 @@ class Series does Iterable {
 
 =head1 NAME
 
-Series - Purely functional linked lists
+Series - Purely functional, potentially lazy linked lists
 
 =head1 DESCRIPTION
 
@@ -108,7 +139,12 @@ The last node of a series links to the empty series, the only C<Series> object
 instance that evaluates to C<False> in Boolean context.
 
 While C<Series> are L<C<Iterable>|https://docs.raku.org/type/Iterable>, they're
-not C<Positional>, so they're not "lists" in the Raku sense of the word.
+not C<Positional>, so they're not "lists" in the Raku sense of the word. But
+like the elements of Raku lists, the nodes of a series may be lazily evaluated.
+As the first node represents the whole series, a series with a lazy head is
+represented by a C<Proxy>. A method that returns such a I<deferred> series has
+the C<is raw> trait instead of an explicit return type. Clients that wish to
+delay evaluation of the head should bind to the result, rather than assign it.
 
 =head1 OPERATORS
 
@@ -154,6 +190,13 @@ C<Series> consisting of the decontainerized C<@items>.
 
 Returns a new C<Series> consisting of the decontainerized C<item> followed by
 the values of the invocant.
+
+=head2 method prepend
+
+    method prepend(Iterable \items) is raw
+
+Returns a deferred C<Series> of lazily evaluated, decontainerized C<items>
+followed by the values of the invocant.
 
 =head2 method iterator
 

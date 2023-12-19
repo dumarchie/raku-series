@@ -105,4 +105,44 @@ subtest '.raku', {
     );
 }
 
+# To check lazy evaluation
+my class Counter does Iterable does Iterator {
+    has int $.last;
+    has int $.counted;
+
+    method iterator() { self }
+
+    method pull-one() {
+        $!counted++ < $!last ?? $!counted !! IterationEnd;
+    }
+}
+
+subtest 'method prepend', {
+    subtest 'Series.prepend(items)', {
+        my \items = Counter.new;
+        $_ := Series.prepend(items);
+        isa-ok .VAR, Proxy, 'Series.prepend(items) returns a Proxy';
+        throws-like {
+            $_ = 42;
+        }, X::AdHoc, message => 'Cannot assign to an immutable Series',
+          'The proxy cannot be assigned to';
+
+        is items.counted, 0, 'The items have not been iterated';
+        cmp-ok .self, '=:=', Series.new,
+          'The proxy evaluates to the empty series if there are no items';
+    }
+
+    subtest 'series.prepend(items)', {
+        my \series = Series.new(3);
+        my \items = Counter.new(last => 2);
+        $_ := series.prepend(items);
+        isa-ok .VAR, Proxy, 'Series.prepend(items) returns a Proxy';
+        is items.counted, 0, 'The items have not been iterated';
+        isa-ok $_, Series:D, 'The proxy evaluates to a Series';
+        is items.counted, 1, 'Evaluation requires the first of the items';
+        is-deeply $_, Series.new(1, 2, 3),
+          'The items are prepended to the original series';
+    }
+}
+
 done-testing;
