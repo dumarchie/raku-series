@@ -30,7 +30,12 @@ my %Build = (
       benchmark {
           Series.new(slip ^$_);
       }, "Use .new(slip values) to create a Series of $_ nodes";
-  }
+  },
+  prepend => {
+      benchmark {
+          Series.prepend(^$_);
+      }, "Use .prepend(values) to create a Series of $_ nodes";
+  },
 );
 
 my %Traversal = (
@@ -46,12 +51,12 @@ my %Traversal = (
   },
 );
 
-enum Build     <infix insert new>;
+enum Build     <infix insert new prepend>;
 enum Traversal <elems list>;
 sub MAIN(
-  Int()     :$nodes  = 3E6,      #= number of nodes in the series
+  Int()     :$nodes  = 3E6,   #= number of nodes in the series
   Build     :$method = infix, #= method to create the series
-  Traversal :$assess = elems,    #= traversal method to assess
+  Traversal :$assess = elems, #= traversal method to assess
 ) {
     my $series := %Build{$method}($nodes);
     %Traversal{$assess}($series);
