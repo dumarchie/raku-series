@@ -4,6 +4,16 @@ use v6.d;
 proto sub postfix:«<>»(|) {*}
 multi sub postfix:«<>»(Mu \item) { item }
 
+# Define deferred series constructor
+my class Series::Deferred is Proxy {}
+sub deferred(&init) is raw {
+    my $series;
+    Series::Deferred.new(
+      FETCH => method ()  { $series // ($series := init) },
+      STORE => method ($) { die "Cannot assign to an immutable Series" }
+    );
+}
+
 class Series does Iterable {
     has $!value;
     has $!next;
@@ -67,12 +77,12 @@ class Series does Iterable {
     method prepend(Iterable \items) is raw {
         my \iter = items.iterator;
         my \lock = Lock.new;
-        my &next = {
+        my &head = {
             my &node = {
                 my \item = iter.pull-one;
                 item =:= IterationEnd
                   ?? self // End
-                  !! ::?CLASS.CREATE!SET-SELF(item<>, next);
+                  !! ::?CLASS.CREATE!SET-SELF(item<>, head);
             };
             my $state := {
                 lock.protect({
@@ -80,16 +90,7 @@ class Series does Iterable {
                 });
             };
         };
-
-        my $state := next;
-        Proxy.new(
-          FETCH => method () {
-              $state ~~ Callable ?? ($state := $state()) !! $state;
-          },
-          STORE => method ($) {
-              die "Cannot assign to an immutable Series";
-          },
-        );
+        deferred head;
     }
 
     # The iterator makes series Iterable
