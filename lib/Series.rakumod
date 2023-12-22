@@ -77,20 +77,20 @@ class Series does Iterable {
     method prepend(Iterable \items) is raw {
         my \iter = items.iterator;
         my \lock = Lock.new;
-        my &head = {
-            my &node = {
-                my \item = iter.pull-one;
-                item =:= IterationEnd
-                  ?? self // End
-                  !! ::?CLASS.CREATE!SET-SELF(item<>, head);
-            };
+        my &copy = {
             my $state = {
                 lock.protect({
-                    $state ~~ Callable ?? ($state := node) !! $state;
+                    if $state ~~ Callable {
+                        my \item = iter.pull-one;
+                        $state := (item =:= IterationEnd)
+                          ?? self // End
+                          !! ::?CLASS.CREATE!SET-SELF(item<>, copy);
+                    }
+                    $state;
                 });
             };
         };
-        deferred head;
+        deferred copy;
     }
 
     # The iterator makes series Iterable
