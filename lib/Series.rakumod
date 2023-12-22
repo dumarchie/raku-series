@@ -14,8 +14,8 @@ class Series does Iterable {
     }
 
     # Define the empty series
-    my \Empty = Series.CREATE but False;
-    Empty!SET-SELF(Nil, Empty);
+    my \End = Series.CREATE but False;
+    End!SET-SELF(Nil, End);
 
     # Property accessors may be called on the type object which is a valid
     # representation of the empty series
@@ -24,7 +24,7 @@ class Series does Iterable {
     multi method value(Series:D:) { $!value }
 
     proto method next(|) {*}
-    multi method next(Series:U: --> Series:D) { Empty }
+    multi method next(Series:U: --> Series:D) { End }
     multi method next(Series:D: --> Series:D) {
         $!next ~~ Callable ?? ($!next := $!next()) !! $!next;
     }
@@ -39,15 +39,15 @@ class Series does Iterable {
         next.insert(item);
     }
 
-    multi method new( --> Series:D) { Empty }
+    multi method new( --> Series:D) { End }
     multi method new(Mu \item --> Series:D) {
-        Empty.insert(item);
+        End.insert(item);
     }
     multi method new(Slip \items --> Series:D) {
-        Empty!insert-list(items);
+        End!insert-list(items);
     }
     multi method new(**@items is raw --> Series:D) {
-        Empty!insert-list(@items);
+        End!insert-list(@items);
     }
     method !insert-list(@items) {
         my $self := self;
@@ -57,7 +57,7 @@ class Series does Iterable {
 
     proto method insert(|) {*}
     multi method insert(Series:U: Mu \item --> Series:D) {
-        Empty.insert(item);
+        End.insert(item);
     }
     multi method insert(Series:D: Mu \item --> Series:D) {
         ::?CLASS.CREATE!SET-SELF(item<>, self);
@@ -71,7 +71,7 @@ class Series does Iterable {
             my &node = {
                 my \item = iter.pull-one;
                 item =:= IterationEnd
-                  ?? self // Empty
+                  ?? self // End
                   !! ::?CLASS.CREATE!SET-SELF(item<>, next);
             };
             my $state := {
