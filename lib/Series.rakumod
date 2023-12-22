@@ -36,7 +36,7 @@ class Series does Iterable {
     proto method next(|) {*}
     multi method next(Series:U: --> Series:D) { End }
     multi method next(Series:D: --> Series:D) {
-        $!next ~~ Callable ?? ($!next := $!next()) !! $!next;
+        $!next.VAR =:= $!next ?? $!next !! ($!next := $!next());
     }
 
     # The identity function is useful when another thread has concurrently
@@ -84,7 +84,7 @@ class Series does Iterable {
                   ?? self // End
                   !! ::?CLASS.CREATE!SET-SELF(item<>, head);
             };
-            my $state := {
+            my $state = {
                 lock.protect({
                     $state ~~ Callable ?? ($state := node) !! $state;
                 });
