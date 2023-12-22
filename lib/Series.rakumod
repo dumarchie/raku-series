@@ -26,7 +26,7 @@ class Series does Iterable {
     proto method next(|) {*}
     multi method next(Series:U: --> Series:D) { Empty }
     multi method next(Series:D: --> Series:D) {
-        $!next.VAR =:= $!next ?? $!next !! ($!next := $!next());
+        $!next ~~ Callable ?? ($!next := $!next()) !! $!next;
     }
 
     # The identity function is useful when another thread has concurrently
@@ -74,9 +74,9 @@ class Series does Iterable {
                   ?? self // Empty
                   !! ::?CLASS.CREATE!SET-SELF(item<>, next);
             };
-            my $state = {
+            my $state := {
                 lock.protect({
-                    $state.VAR =:= $state ?? $state !! ($state := node);
+                    $state ~~ Callable ?? ($state := node) !! $state;
                 });
             };
         };
@@ -84,7 +84,7 @@ class Series does Iterable {
         my $state := next;
         Proxy.new(
           FETCH => method () {
-              $state.VAR =:= $state ?? $state !! ($state := $state());
+              $state ~~ Callable ?? ($state := $state()) !! $state;
           },
           STORE => method ($) {
               die "Cannot assign to an immutable Series";
