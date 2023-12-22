@@ -17,8 +17,8 @@ class Series does Iterable {
     my \Empty = Series.CREATE but False;
     Empty!SET-SELF(Nil, Empty);
 
-    # Property accessors
-    # Note that the type object is a valid representation of the empty series
+    # Property accessors may be called on the type object which is a valid
+    # representation of the empty series
     proto method value(|) {*}
     multi method value(Series:U: --> Nil) { }
     multi method value(Series:D:) { $!value }
@@ -28,6 +28,10 @@ class Series does Iterable {
     multi method next(Series:D: --> Series:D) {
         $!next.VAR =:= $!next ?? $!next !! ($!next := $!next());
     }
+
+    # The identity function is useful when another thread has concurrently
+    # replaced a Callable with the Series it returned
+    method CALL-ME() { self }
 
     # Constructors
     proto sub infix:<::>(|) is assoc<right> is equiv(&infix:<,>) is export {*}

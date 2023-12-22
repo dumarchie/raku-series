@@ -53,11 +53,28 @@ my %Traversal = (
 
 enum Build     <infix insert new prepend>;
 enum Traversal <elems list>;
+constant cores = $*KERNEL.cpu-cores;
+
 sub MAIN(
-  Int()     :$nodes  = 3E6,   #= number of nodes in the series
-  Build     :$method = infix, #= method to create the series
-  Traversal :$assess = elems, #= traversal method to assess
+  Int()     :$nodes   = 3E6,   #= number of nodes in the series
+  Build     :$method  = infix, #= method to create the series
+  Traversal :$assess  = elems, #= traversal method to assess
+  Int       :$workers = cores, #= number of parallel workers
 ) {
-    my $series := %Build{$method}($nodes);
-    %Traversal{$assess}($series);
+    my &build    = %Build{$method};
+    my &traverse = %Traversal{$assess};
+    if $workers > 0 {
+        benchmark {
+            my \series = build($nodes);
+            await (^$workers).map: {
+                start traverse(series)
+            };
+        }, 'Total time';
+    }
+    else {
+        benchmark {
+            my \series = build($nodes);
+            traverse(series);
+        }, 'Total time';
+    }
 }
