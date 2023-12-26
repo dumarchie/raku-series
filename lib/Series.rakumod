@@ -17,7 +17,7 @@ sub deferred(&init) is raw {
 class Series does Iterable {
     has $!value;
     has $!next;
-    method !SET-SELF(Mu \value, \next) {
+    method !SET-SELF(Mu \value, Mu \next) {
         $!value := value;
         $!next  := next;
         self;
@@ -39,14 +39,16 @@ class Series does Iterable {
         $!next.VAR =:= $!next ?? $!next !! ($!next := $!next());
     }
 
-    # The identity function is useful when another thread has concurrently
-    # replaced a Callable with the Series it returned
+    # In case another thread has concurrently replaced a Callable with a Series
     method CALL-ME() { self }
 
     # Constructors
-    proto sub infix:<::>(|) is assoc<right> is equiv(&infix:<,>) is export {*}
-    multi sub infix:<::>(Mu \item, Series \next --> Series:D) {
-        next.insert(item);
+    sub infix:<::>(Mu \item, Mu \next --> Series:D)
+      is assoc<right> is equiv(&infix:<,>) is export
+    {
+        next.VAR.WHAT =:= Series::Deferred
+          ?? ::?CLASS.CREATE!SET-SELF(item<>, next)
+          !! (my Series $ := next).insert(item);
     }
 
     multi method new( --> Series:D) { End }
@@ -157,11 +159,11 @@ The following operator is exported by default:
 
 =head2 infix ::
 
-    multi sub infix:<::>(Mu \item, Series \next --> Series:D)
+    sub infix:<::>(Mu \item, Mu \next --> Series:D)
 
 Constructs a new C<Series> consisting of the decontainerized C<item> followed
-by the values of the C<next> series. This operator is right associative, so
-the following statement is true:
+by the values of the potentially deferred C<next> series. This operator is
+right associative, so the following statement is true:
 
     (1 :: 2 :: Series) eqv Series.new(1, 2);
 

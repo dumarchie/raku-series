@@ -127,7 +127,10 @@ subtest 'method prepend', {
         }, X::AdHoc, message => 'Cannot assign to an immutable Series',
           'The proxy cannot be assigned to';
 
+        my $node = (42 :: $_);
+        isa-ok $node, Series:D, '(value :: $_) returns a series';
         is items.counted, 0, 'The items have not been iterated';
+
         cmp-ok .self, '=:=', Series.new,
           'The proxy evaluates to the empty series if there are no items';
     }
