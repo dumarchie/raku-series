@@ -106,20 +106,20 @@ subtest '.raku', {
 }
 
 # To check lazy evaluation
-my class Counter does Iterable does Iterator {
+my class Items does Iterable does Iterator {
     has int $.last;
-    has int $.counted;
+    has int $.iterated;
 
     method iterator() { self }
 
     method pull-one() {
-        $!counted++ < $!last ?? $!counted !! IterationEnd;
+        $!iterated++ < $!last ?? $!iterated !! IterationEnd;
     }
 }
 
 subtest 'method prepend', {
     subtest 'Series.prepend(items)', {
-        my \items = Counter.new;
+        my \items = Items.new;
         $_ := Series.prepend(items);
         isa-ok .VAR, Proxy, 'Series.prepend(items) returns a Proxy';
         throws-like {
@@ -129,7 +129,7 @@ subtest 'method prepend', {
 
         my $node = (42 :: $_);
         isa-ok $node, Series:D, '(value :: $_) returns a series';
-        is items.counted, 0, 'The items have not been iterated';
+        is items.iterated, 0, 'The items have not been iterated';
 
         cmp-ok .self, '=:=', Series.new,
           'The proxy evaluates to the empty series if there are no items';
@@ -137,12 +137,17 @@ subtest 'method prepend', {
 
     subtest 'series.prepend(items)', {
         my \series = Series.new(3);
-        my \items = Counter.new(last => 2);
+        my \items = Items.new(last => 2);
         $_ := series.prepend(items);
-        isa-ok .VAR, Proxy, 'Series.prepend(items) returns a Proxy';
-        is items.counted, 0, 'The items have not been iterated';
-        isa-ok $_, Series:D, 'The proxy evaluates to a Series';
-        is items.counted, 1, 'Evaluation requires the first of the items';
+        isa-ok .VAR, Proxy,   'series.prepend(items) returns a Proxy';
+        is items.iterated, 0, 'The items have not been iterated';
+        isa-ok $_, Series:D,  'The proxy evaluates to a Series';
+        is items.iterated, 1, 'Evaluation requires the first of the items';
+
+        my \head = .iterator.pull-one;
+        is items.iterated, 1,
+          '.iterator.pull-one does not require subsequent items';
+
         is-deeply $_, Series.new(1, 2, 3),
           'The items are prepended to the original series';
     }

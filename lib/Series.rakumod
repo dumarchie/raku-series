@@ -95,18 +95,14 @@ class Series does Iterable {
         deferred copy;
     }
 
-    # The iterator makes series Iterable
+    # The iterator lazily evaluates each node
     method iterator( --> Iterator:D) {
         class :: does Iterator {
-            has $.series;
+            has $.node;
             method pull-one() {
-                my \node = $!series
-                  or return IterationEnd;
-
-                $!series := node.next;
-                node.value;
+                ($!node := $!node.next) ?? $!node.value !! IterationEnd;
             }
-        }.new(series => self);
+        }.new(node => self.insert(Nil));
     }
 
     # Specialized Iterable methods
