@@ -5,14 +5,18 @@ use lib 'lib';
 use Series;
 
 subtest 'empty series', {
-    cmp-ok Series.head, '=:=', Nil, 'Series.head';
+    $_ := Series.new;
+    isa-ok $_, Series:D, 'Series.new';
+    cmp-ok .Bool,    '===', False, '.Bool';
+    cmp-ok .head,    '=:=', Nil,   '.head';
+    cmp-ok .next,    '=:=', $_,    '.next';
+    cmp-ok .skip,    '=:=', $_,    '.skip';
+    cmp-ok .skip(2), '=:=', $_,    '.skip(2)';
 
-    my $series := Series.next;
-    isa-ok $series, Series:D, '$series := Series.next';
-    cmp-ok $series.Bool, '===', False,   '$series.Bool';
-    cmp-ok $series.head, '=:=', Nil,     '$series.head';
-    cmp-ok $series.next, '=:=', $series, '$series.next';
-    cmp-ok Series.new,   '=:=', $series, 'Series.new';
+    cmp-ok Series.head,     '=:=', Nil, 'Series.head';
+    cmp-ok Series.next,     '=:=', $_,  'Series.next';
+    cmp-ok Series.skip,     '=:=', $_,  'Series.skip';
+    cmp-ok Series.skip(2),  '=:=', $_,  'Series.skip(2)';
 }
 
 subtest 'method insert(Mu \value --> Series:D)', {
@@ -142,14 +146,15 @@ subtest 'method prepend', {
         isa-ok .VAR, Proxy,   'series.prepend(items) returns a Proxy';
         is items.iterated, 0, 'The items have not been iterated';
         isa-ok $_, Series:D,  'The proxy evaluates to a Series';
-        is items.iterated, 1, 'Evaluation requires the first of the items';
+        is items.iterated, 1, 'Evaluation reifies the first item';
 
         my \head = .iterator.pull-one;
-        is items.iterated, 1,
-          '.iterator.pull-one does not require subsequent items';
+        is items.iterated, 1, '.iterator.pull-one does not reify more';
 
-        is-deeply $_, Series.new(1, 2, 3),
-          'The items are prepended to the original series';
+        my \tail = .skip(2);
+        is items.iterated, 2, '.skip(2) reifies two items';
+        isa-ok tail.VAR, Proxy, '...and returns a Proxy';
+        is-deeply tail, series, '...for the original series';
     }
 }
 

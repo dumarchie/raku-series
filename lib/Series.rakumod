@@ -116,6 +116,20 @@ class Series does Iterable {
 
     multi method head() { self.value }
 
+    multi method skip(Series:U:) is raw { End }
+    multi method skip(Series:U: Int() \n) is raw { End }
+    multi method skip(Series:D:) is raw {
+        $!next.VAR =:= $!next ?? $!next !! deferred { $!next := $!next() };
+    }
+    multi method skip(Series:D: Int() \n) is raw {
+        my $series := self;
+        my int $n = n;
+        while --$n > 0 {
+            $series := $series.next or $n = 0;
+        }
+        $n == 0 ?? $series.skip !! $series;
+    }
+
     method list( --> List:D) { self.Seq.list }
 
     # Stringification
@@ -237,6 +251,19 @@ calling C<.next> in a loop. For example:
     print "\n";
 
     # OUTPUT: «123␤»
+
+=head2 method skip
+
+Defined as
+
+    multi method skip() is raw
+    multi method skip(Int() \n) is raw
+
+Returns the potentially deferred series of values that remains after discarding
+the first value or first C<n> values of the invocant. Negative values of C<n>
+count as 0, and
+
+    $series.skip(0) === $series.self;
 
 =head2 method list
 
