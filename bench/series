@@ -39,20 +39,25 @@ my %Build = (
 );
 
 my %Traversal = (
-  elems => sub ($series) {
+  elems => -> Mu $_ is raw, *%_ {
       benchmark {
-          $series.elems;
+          .elems;
       }, '.elems';
   },
-  list => sub ($series) {
+  list => -> Mu $_ is raw, *%_ {
       benchmark {
-          $series.list.elems;
+          .list.elems;
       }, '.list.elems';
+  },
+  skip => -> Mu $_ is raw, :$nodes {
+      benchmark {
+          .skip($nodes);
+      }, ".skip($nodes)";
   },
 );
 
 enum Build     <infix insert new prepend>;
-enum Traversal <elems list>;
+enum Traversal <elems list skip>;
 constant cores = $*KERNEL.cpu-cores;
 
 sub MAIN(
@@ -67,14 +72,14 @@ sub MAIN(
         benchmark {
             my \series = build($nodes);
             await (^$workers).map: {
-                start traverse(series)
+                start traverse(series, :$nodes)
             };
         }, 'Total time';
     }
     else {
         benchmark {
             my \series = build($nodes);
-            traverse(series);
+            traverse(series, :$nodes);
         }, 'Total time';
     }
 }
