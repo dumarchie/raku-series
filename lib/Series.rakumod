@@ -14,31 +14,11 @@ sub deferred(&init) is raw {
     );
 }
 
-class Series does Iterable {
-    has $!value;
-    has $!next;
-    method !SET-SELF(Mu \value, Mu \next) {
-        $!value := value;
-        $!next  := next;
-        self;
-    }
+# To be defined when role Series has been defined:
+my $Empty; # Series::End singleton
+my &cons;  # protected Series::Node constructor
 
-    # Define the empty series
-    my \End = Series.CREATE but False;
-    End!SET-SELF(Nil, End);
-
-    # Property accessors may be called on the type object which is a valid
-    # representation of the empty series
-    proto method value(|) {*}
-    multi method value(Series:U: --> Nil) { }
-    multi method value(Series:D:) { $!value }
-
-    proto method next(|) {*}
-    multi method next(Series:U: --> Series:D) { End }
-    multi method next(Series:D: --> Series:D) {
-        $!next.VAR =:= $!next ?? $!next !! ($!next := $!next());
-    }
-
+role Series does Iterable {
     # In case another thread has concurrently replaced a Callable with a Series
     method CALL-ME() { self }
 
@@ -47,19 +27,20 @@ class Series does Iterable {
       is assoc<right> is equiv(&infix:<,>) is export
     {
         next.VAR.WHAT =:= Series::Deferred
-          ?? ::?CLASS.CREATE!SET-SELF(item<>, next)
+          ?? cons(item<>, next)
           !! (my Series $ := next).insert(item);
     }
 
-    multi method new( --> Series:D) { End }
+    proto method new(|) {*}
+    multi method new( --> Series:D) { $Empty }
     multi method new(Mu \item --> Series:D) {
-        End.insert(item);
+        $Empty.insert(item);
     }
     multi method new(Slip \items --> Series:D) {
-        End!insert-list(items);
+        $Empty!insert-list(items);
     }
     multi method new(**@items is raw --> Series:D) {
-        End!insert-list(@items);
+        $Empty!insert-list(@items);
     }
     method !insert-list(@items) {
         my $self := self;
@@ -67,12 +48,8 @@ class Series does Iterable {
         $self;
     }
 
-    proto method insert(|) {*}
-    multi method insert(Series:U: Mu \item --> Series:D) {
-        End.insert(item);
-    }
-    multi method insert(Series:D: Mu \item --> Series:D) {
-        ::?CLASS.CREATE!SET-SELF(item<>, self);
+    method insert(Mu \item --> Series:D) {
+        cons(item<>, $Empty);
     }
 
     # Concatenation
@@ -85,8 +62,8 @@ class Series does Iterable {
                     if $state ~~ Callable {
                         my \item = iter.pull-one;
                         $state := (item =:= IterationEnd)
-                          ?? self // End
-                          !! ::?CLASS.CREATE!SET-SELF(item<>, copy);
+                          ?? self // $Empty
+                          !! cons(item<>, copy);
                     }
                     $state;
                 });
@@ -95,7 +72,8 @@ class Series does Iterable {
         deferred copy;
     }
 
-    # The iterator lazily evaluates each node
+    # All property accessors may be called on the Series type object,
+    # which is a valid representation of the empty series
     method iterator( --> Iterator:D) {
         class :: does Iterator {
             has $.node;
@@ -105,8 +83,6 @@ class Series does Iterable {
         }.new(node => self.insert(Nil));
     }
 
-    # Specialized Iterable methods
-    # Note that the type object is a valid representation of the empty series.
     method elems( --> Int:D) {
         my $node := self or return 0;
         my int $elems = 1;
@@ -114,15 +90,13 @@ class Series does Iterable {
         $elems;
     }
 
-    multi method head() { self.value }
+    multi method head() { Nil }
 
-    multi method skip(Series:U:) is raw { End }
-    multi method skip(Series:U: Int() \n) is raw { End }
-    multi method skip(Series:D:) is raw {
-        $!next.VAR =:= $!next ?? $!next !! deferred { $!next := $!next() };
-    }
-    multi method skip(Series:D: Int() \n) is raw {
-        my $series := self;
+    method next( --> Series:D) { $Empty }
+
+    multi method skip() is raw { $Empty }
+    multi method skip(Int() \n) is raw {
+        my $series := self // $Empty;
         my int $n = n;
         while --$n > 0 {
             $series := $series.next or $n = 0;
@@ -133,12 +107,48 @@ class Series does Iterable {
     method list( --> List:D) { self.Seq.list }
 
     # Stringification
-    multi method gist(Series:D: --> Str:D) { self.Seq.gist }
+    multi method gist(::?CLASS:D: --> Str:D) { self.Seq.gist }
 
-    multi method raku(Series:D: --> Str:D) {
-        self ?? "({join ' :: ', self.map: *.raku} :: Series)" !! 'Series.new';
+    multi method raku(::?CLASS:D: --> Str:D) {
+        "({join ' :: ', self.map: *.raku} :: Series)";
     }
 }
+
+my class Series::Node does Series {
+    has $.value;
+    has $!next;
+    method !SET-SELF(Mu \value, Mu \next) {
+        $!value := value;
+        $!next  := next;
+        self;
+    }
+
+    &cons = -> Mu \value, Mu \next {
+        ::?CLASS.CREATE!SET-SELF(value, next);
+    }
+
+    method insert(::?CLASS:D: Mu \item --> Series:D) {
+        ::?CLASS.CREATE!SET-SELF(item<>, self);
+    }
+
+    multi method head(::?CLASS:D:) is default { $!value }
+
+    method next(::?CLASS:D: --> Series:D) {
+        $!next.VAR =:= $!next ?? $!next !! ($!next := $!next());
+    }
+
+    multi method skip(::?CLASS:D:) is default is raw {
+        $!next.VAR =:= $!next ?? $!next !! deferred { $!next := $!next() };
+    }
+}
+
+my class Series::End does Series {
+    method Bool(::?CLASS:D: --> False) { }
+
+    multi method raku(::?CLASS:D: --> Str:D) { 'Series.new' }
+}
+
+$Empty := Series::End.CREATE;
 
 =begin pod
 
@@ -148,7 +158,7 @@ Series - Purely functional, potentially lazy linked lists
 
 =head1 DESCRIPTION
 
-    class Series does Iterable {}
+    role Series does Iterable {}
 
 C<Series> are strongly immutable linked lists. A series consists of nodes that
 recursively link a I<value>, the C<.head> of the series, to the I<next> node.
@@ -195,15 +205,14 @@ from a package name.
 
 Defined as
 
-    multi method new(**@items --> Series:D)
+    method new(**@items --> Series:D)
 
 Returns the empty series if no items are provided. Otherwise returns a new
 C<Series> consisting of the decontainerized C<@items>.
 
 =head2 method insert
 
-    multi method insert(Series:U: Mu \item --> Series:D)
-    multi method insert(Series:D: Mu \item --> Series:D)
+    method insert(Mu \item --> Series:D)
 
 Returns a new C<Series> consisting of the decontainerized C<item> followed by
 the values of the invocant.
@@ -235,8 +244,7 @@ Returns the value at the head of the series, or C<Nil> if the series is empty.
 
 =head2 method next
 
-    multi method next(Series:U: --> Series:D)
-    multi method next(Series:D: --> Series:D)
+    method next( --> Series:D)
 
 Returns the C<Series> following the L<C<.head>|#method_head> of the invocant.
 Note that C<.next> returns the empty series if called on a series without
@@ -254,8 +262,6 @@ calling C<.next> in a loop. For example:
 
 =head2 method skip
 
-Defined as
-
     multi method skip() is raw
     multi method skip(Int() \n) is raw
 
@@ -269,7 +275,7 @@ count as 0, and
 
     method list( --> List:D)
 
-Coerces the series to C<List>.
+Coerces the series to a C<List> of values.
 
 =head2 method gist
 
