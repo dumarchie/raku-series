@@ -74,21 +74,14 @@ my $Empty := class Series does Iterable {
 
     method iterator( --> Iterator:D) { Empty.iterator }
 
+    method list( --> List:D) { self.Seq.list }
+
     method next( --> Series:D) { $Empty }
 
     multi method skip() is raw { $Empty }
-    multi method skip(Int() \n) is raw {
-        my $series := self // $Empty;
-        my int $n = n;
-        while --$n > 0 {
-            $series := $series.next or $n = 0;
-        }
-        $n == 0 ?? $series.skip !! $series;
-    }
+    multi method skip(Int() \n) is raw { $Empty }
 
-    method list( --> List:D) { self.Seq.list }
-
-    # Stringification
+    # Stringification does depend on concreteness
     multi method gist(::?CLASS:D: --> Str:D) { self.Seq.gist }
 
     multi method raku(::?CLASS:D: --> Str:D) { 'Series.new' }
@@ -153,7 +146,16 @@ my class Series::Node is Series {
     multi method skip(::?CLASS:D:) is raw {
         $!next.VAR =:= $!next ?? $!next !! deferred { $!next := $!next() };
     }
+    multi method skip(::?CLASS:D: Int() \n) is raw {
+        my $series := self;
+        my int $n = n;
+        while --$n > 0 {
+            $series := $series.next or $n = 0;
+        }
+        $n == 0 ?? $series.skip !! $series;
+    }
 
+    # Stringification
     multi method raku(::?CLASS:D: --> Str:D) {
         "({join ' :: ', self.map(*.raku)} :: Series)";
     }
@@ -246,17 +248,23 @@ followed by the values of the invocant.
 
 Returns the number of values in the series.
 
+=head2 method head
+
+    multi method head()
+
+Returns the value at the head of the series, or C<Nil> if the series is empty.
+
 =head2 method iterator
 
     method iterator( --> Iterator:D)
 
 Returns an C<Iterator> over the values in the series.
 
-=head2 method head
+=head2 method list
 
-    multi method head()
+    method list( --> List:D)
 
-Returns the value at the head of the series, or C<Nil> if the series is empty.
+Coerces the series to a lazy C<List> of values.
 
 =head2 method next
 
@@ -286,12 +294,6 @@ the first value or first C<n> values of the invocant. Negative values of C<n>
 count as 0, and
 
     $series.skip(0) === $series.self;
-
-=head2 method list
-
-    method list( --> List:D)
-
-Coerces the series to a C<List> of values.
 
 =head2 method gist
 
