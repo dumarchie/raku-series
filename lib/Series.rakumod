@@ -25,14 +25,6 @@ my $Empty := class Series does Iterable {
     method CALL-ME() { self }
 
     # Constructors
-    sub infix:<::>(Mu \item, Mu \next --> Series:D)
-      is assoc<right> is equiv(&infix:<,>) is export
-    {
-        next.VAR.WHAT =:= Series::Deferred
-          ?? cons(item<>, next)
-          !! (my Series $ := next).insert(item);
-    }
-
     proto method new(|) {*}
     multi method new( --> Series:D) { $Empty }
     multi method new(Mu \item --> Series:D) {
@@ -127,10 +119,21 @@ my class Series::Node is Series {
     # Note that the type object is not meant to be accessed!
     method Bool(::?CLASS:D: --> True) {}
 
+    # This public cons operator constrains the next argument
+    sub infix:<::>(Mu \item, Mu \next --> Series:D)
+      is assoc<right> is equiv(&infix:<,>) is export
+    {
+      next.VAR.WHAT =:= Series::Deferred
+        ?? ::?CLASS.CREATE!SET-SELF(item<>, next)
+        !! (my Series $ := next).insert(item);
+    }
+
+    # This protected cons function expects the caller to check the next argument
     &cons = -> Mu \value, Mu \next {
         ::?CLASS.CREATE!SET-SELF(value, next);
     }
 
+    # Object-oriented constructor
     method insert(::?CLASS:D: Mu \item --> Series:D) {
         ::?CLASS.CREATE!SET-SELF(item<>, self);
     }
