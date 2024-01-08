@@ -68,6 +68,8 @@ my $Empty := class Series does Iterable {
 
     # All property accessors may be called on the Series type object,
     # which is a valid representation of the empty series
+    method elems( --> Int:D) { 0 }
+
     method iterator( --> Iterator:D) {
         class :: does Iterator {
             has $.node;
@@ -75,13 +77,6 @@ my $Empty := class Series does Iterable {
                 ($!node := $!node.next) ?? $!node.value !! IterationEnd;
             }
         }.new(node => self.insert(Nil));
-    }
-
-    method elems( --> Int:D) {
-        my $node := self or return 0;
-        my int $elems = 1;
-        $elems++ while $node := $node.next;
-        $elems;
     }
 
     multi method head() { Nil }
@@ -115,9 +110,11 @@ my class Series::Node is Series {
         self;
     }
 
-    # Instances of this subclass represent a proper series.
-    # Note that the type object is not meant to be accessed!
-    method Bool(::?CLASS:D: --> True) {}
+    # This protected cons function expects the caller to
+    # sanitize the next argument
+    &cons = -> Mu \value, Mu \next {
+        ::?CLASS.CREATE!SET-SELF(value, next);
+    }
 
     # This public cons operator constrains the next argument
     sub infix:<::>(Mu \item, Mu \next --> Series:D)
@@ -128,14 +125,20 @@ my class Series::Node is Series {
         !! (my Series $ := next).insert(item);
     }
 
-    # This protected cons function expects the caller to check the next argument
-    &cons = -> Mu \value, Mu \next {
-        ::?CLASS.CREATE!SET-SELF(value, next);
-    }
-
     # Object-oriented constructor
     method insert(::?CLASS:D: Mu \item --> Series:D) {
         ::?CLASS.CREATE!SET-SELF(item<>, self);
+    }
+
+    # Instances of this subclass represent a proper series.
+    # Note that the type object is not meant to be accessed!
+    method Bool(::?CLASS:D: --> True) {}
+
+    method elems(::?CLASS:D: --> Int:D) {
+        my $node := self;
+        my int $elems = 1;
+        $elems++ while $node := $node.next;
+        $elems;
     }
 
     multi method head(::?CLASS:D:) { $!value }
@@ -234,17 +237,17 @@ the values of the invocant.
 Returns a deferred C<Series> of lazily evaluated, decontainerized C<items>
 followed by the values of the invocant.
 
-=head2 method iterator
-
-    method iterator( --> Iterator:D)
-
-Returns an C<Iterator> over the values in the series.
-
 =head2 method elems
 
     method elems( --> Int:D)
 
 Returns the number of values in the series.
+
+=head2 method iterator
+
+    method iterator( --> Iterator:D)
+
+Returns an C<Iterator> over the values in the series.
 
 =head2 method head
 
