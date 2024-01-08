@@ -14,11 +14,11 @@ sub deferred(&init) is raw {
     );
 }
 
-# To be defined when role Series has been defined:
+# To be defined when class Series has been defined:
 my $Empty; # Series::End singleton
 my &cons;  # protected Series::Node constructor
 
-role Series does Iterable {
+class Series does Iterable {
     # In case another thread has concurrently replaced a Callable with a Series
     method CALL-ME() { self }
 
@@ -44,7 +44,7 @@ role Series does Iterable {
     }
     method !insert-list(@items) {
         my $self := self;
-        $self := $self.insert($_) for @items.reverse;
+        $self := cons($_<>, $self) for @items.reverse;
         $self;
     }
 
@@ -114,7 +114,7 @@ role Series does Iterable {
     }
 }
 
-my class Series::Node does Series {
+my class Series::Node is Series {
     has $.value;
     has $!next;
     method !SET-SELF(Mu \value, Mu \next) {
@@ -131,18 +131,18 @@ my class Series::Node does Series {
         ::?CLASS.CREATE!SET-SELF(item<>, self);
     }
 
-    multi method head(::?CLASS:D:) is default { $!value }
+    multi method head(::?CLASS:D:) { $!value }
 
     method next(::?CLASS:D: --> Series:D) {
         $!next.VAR =:= $!next ?? $!next !! ($!next := $!next());
     }
 
-    multi method skip(::?CLASS:D:) is default is raw {
+    multi method skip(::?CLASS:D:) is raw {
         $!next.VAR =:= $!next ?? $!next !! deferred { $!next := $!next() };
     }
 }
 
-my class Series::End does Series {
+my class Series::End is Series {
     method Bool(::?CLASS:D: --> False) { }
 
     multi method raku(::?CLASS:D: --> Str:D) { 'Series.new' }
@@ -158,7 +158,7 @@ Series - Purely functional, potentially lazy linked lists
 
 =head1 DESCRIPTION
 
-    role Series does Iterable {}
+    class Series does Iterable {}
 
 C<Series> are strongly immutable linked lists. A series consists of nodes that
 recursively link a I<value>, the C<.head> of the series, to the I<next> node.
