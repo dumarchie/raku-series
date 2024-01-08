@@ -15,10 +15,12 @@ sub deferred(&init) is raw {
 }
 
 # To be defined when class Series has been defined:
-my $Empty; # Series::End singleton
-my &cons;  # protected Series::Node constructor
+my &cons; # protected Series::Node constructor
 
-class Series does Iterable {
+my $Empty := class Series does Iterable {
+    # This base class represents the empty series
+    method Bool( --> Bool:D) { False }
+
     # In case another thread has concurrently replaced a Callable with a Series
     method CALL-ME() { self }
 
@@ -109,10 +111,8 @@ class Series does Iterable {
     # Stringification
     multi method gist(::?CLASS:D: --> Str:D) { self.Seq.gist }
 
-    multi method raku(::?CLASS:D: --> Str:D) {
-        "({join ' :: ', self.map: *.raku} :: Series)";
-    }
-}
+    multi method raku(::?CLASS:D: --> Str:D) { 'Series.new' }
+}.CREATE;
 
 my class Series::Node is Series {
     has $.value;
@@ -122,6 +122,10 @@ my class Series::Node is Series {
         $!next  := next;
         self;
     }
+
+    # Instances of this subclass represent a proper series.
+    # Note that the type object is not meant to be accessed!
+    method Bool(::?CLASS:D: --> True) {}
 
     &cons = -> Mu \value, Mu \next {
         ::?CLASS.CREATE!SET-SELF(value, next);
@@ -140,15 +144,11 @@ my class Series::Node is Series {
     multi method skip(::?CLASS:D:) is raw {
         $!next.VAR =:= $!next ?? $!next !! deferred { $!next := $!next() };
     }
+
+    multi method raku(::?CLASS:D: --> Str:D) {
+        "({join ' :: ', self.map(*.raku)} :: Series)";
+    }
 }
-
-my class Series::End is Series {
-    method Bool(::?CLASS:D: --> False) { }
-
-    multi method raku(::?CLASS:D: --> Str:D) { 'Series.new' }
-}
-
-$Empty := Series::End.CREATE;
 
 =begin pod
 
@@ -200,6 +200,13 @@ Also note that C<::> must be surrounded by whitespace to distinguish a C<Series>
 from a package name.
 
 =head1 METHODS
+
+=head2 method Bool
+
+    method Bool( --> Bool:D)
+
+Returns C<False> if the series is empty, C<True> if it consists of one or more
+values.
 
 =head2 method new
 
