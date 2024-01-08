@@ -18,9 +18,6 @@ sub deferred(&init) is raw {
 my &cons; # protected Series::Node constructor
 
 my $Empty := class Series does Iterable {
-    # This base class represents the empty series
-    method Bool( --> Bool:D) { False }
-
     # In case another thread has concurrently replaced a Callable with a Series
     method CALL-ME() { self }
 
@@ -66,20 +63,16 @@ my $Empty := class Series does Iterable {
         deferred copy;
     }
 
-    # All property accessors may be called on the Series type object,
-    # which is a valid representation of the empty series
+    # This base class represents the empty series. Both the type object and
+    # object instances are valid representations of the empty series. Hence
+    # there's NO concreteness check on the invocant in these accessors:
+    method Bool( --> Bool:D) { False }
+
     method elems( --> Int:D) { 0 }
 
-    method iterator( --> Iterator:D) {
-        class :: does Iterator {
-            has $.node;
-            method pull-one() {
-                ($!node := $!node.next) ?? $!node.value !! IterationEnd;
-            }
-        }.new(node => self.insert(Nil));
-    }
-
     multi method head() { Nil }
+
+    method iterator( --> Iterator:D) { Empty.iterator }
 
     method next( --> Series:D) { $Empty }
 
@@ -130,8 +123,9 @@ my class Series::Node is Series {
         ::?CLASS.CREATE!SET-SELF(item<>, self);
     }
 
-    # Instances of this subclass represent a proper series.
-    # Note that the type object is not meant to be accessed!
+    # Instances of this subclass represent a proper series. Note that the
+    # type object is NOT a valid representation of the empty series. Hence
+    # there IS a concreteness check on the invocant in these accessors:
     method Bool(::?CLASS:D: --> True) {}
 
     method elems(::?CLASS:D: --> Int:D) {
@@ -142,6 +136,15 @@ my class Series::Node is Series {
     }
 
     multi method head(::?CLASS:D:) { $!value }
+
+    method iterator(::?CLASS:D: --> Iterator:D) {
+        class :: does Iterator {
+            has $.node;
+            method pull-one() {
+                ($!node := $!node.next) ?? $!node.value !! IterationEnd;
+            }
+        }.new(node => cons(Nil, self));
+    }
 
     method next(::?CLASS:D: --> Series:D) {
         $!next.VAR =:= $!next ?? $!next !! ($!next := $!next());
