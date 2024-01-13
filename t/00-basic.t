@@ -37,7 +37,7 @@ subtest 'method insert(Mu \value --> Series:D)', {
     cmp-ok $series2.next, '=:=', $series<>, '$series2.next';
 }
 
-subtest 'sub infix:<::>(Mu \value, Series \next --> Series:D)', {
+subtest 'sub infix:<::>(Mu \value, Mu \next --> Series:D)', {
     subtest my $code = '$var :: Series', {
         my $var = Mu.new;
         $_ := $code.EVAL;
@@ -49,7 +49,7 @@ subtest 'sub infix:<::>(Mu \value, Series \next --> Series:D)', {
 
     subtest 'operator associativity', {
         my $code = '1 :: 2 :: $next';
-        my $next = (3 :: Series);
+        my $next = (3 :: Empty);
         $_ := $code.EVAL;
         isa-ok $_, Series:D, $code;
         cmp-ok .head, '=:=', 1, '.head';
@@ -62,8 +62,8 @@ subtest 'sub infix:<::>(Mu \value, Series \next --> Series:D)', {
     }
 
     subtest 'operator precedence', {
-        ok (not 0 :: Series).head, 'precedence is less than that of prefix not';
-        isa-ok (0, 42 :: Series), List, 'precedence is same as that of infix ,';
+        ok (not 0 :: Empty).head, 'precedence is less than that of prefix not';
+        isa-ok (0, 42 :: Empty), List, 'precedence is same as that of infix ,';
     }
 }
 
@@ -105,27 +105,27 @@ is series.gist, values.gist, '.gist';
 subtest '.raku', {
     is .EVAL.raku, $_, "$_.raku" for (
       'Series.new',
-      '(1 :: 2 :: Series)'
+      '(1 :: 2 :: Empty)'
     );
 }
 
 # To check lazy evaluation
-my class Items does Iterable does Iterator {
+my class Producer does Iterable does Iterator {
     has int $.last;
-    has int $.iterated;
+    has int $.produced;
 
     method iterator() { self }
 
     method pull-one() {
-        $!iterated++ < $!last ?? $!iterated !! IterationEnd;
+        $!produced++ < $!last ?? $!produced !! IterationEnd;
     }
 }
 
 subtest 'method prepend', {
-    subtest 'Series.prepend(items)', {
-        my \items = Items.new;
-        $_ := Series.prepend(items);
-        isa-ok .VAR, Proxy, 'Series.prepend(items) returns a Proxy';
+    subtest 'Series.prepend(values)', {
+        my \values = Producer.new;
+        $_ := Series.prepend(values);
+        isa-ok .VAR, Proxy,     'Series.prepend(values) returns a Proxy';
         throws-like {
             $_ = 42;
         }, X::AdHoc, message => 'Cannot assign to an immutable Series',
@@ -133,28 +133,30 @@ subtest 'method prepend', {
 
         my $node = (42 :: $_);
         isa-ok $node, Series:D, '(value :: $_) returns a series';
-        is items.iterated, 0, 'The items have not been iterated';
+        is values.produced, 0,  'The values have not been iterated';
 
         cmp-ok .self, '=:=', Series.new,
-          'The proxy evaluates to the empty series if there are no items';
+          'The proxy evaluates to the empty series if there are no values';
     }
 
-    subtest 'series.prepend(items)', {
+    subtest 'series.prepend(values)', {
         my \series = Series.new(3);
-        my \items = Items.new(last => 2);
-        $_ := series.prepend(items);
-        isa-ok .VAR, Proxy,   'series.prepend(items) returns a Proxy';
-        is items.iterated, 0, 'The items have not been iterated';
-        isa-ok $_, Series:D,  'The proxy evaluates to a Series';
-        is items.iterated, 1, 'Evaluation reifies the first item';
+        my \values = Producer.new(last => 2);
+        $_ := series.prepend(values);
+        isa-ok .VAR, Proxy,     'series.prepend(values) returns a Proxy';
+        is values.produced, 0,  'The values have not been iterated';
+        isa-ok $_, Series:D,    'The proxy evaluates to a Series';
+        is values.produced, 1,  'Evaluation reifies the first item';
 
         my \head = .iterator.pull-one;
-        is items.iterated, 1, '.iterator.pull-one does not reify more';
+        is values.produced, 1,  '.iterator.pull-one does not reify more';
 
-        my \tail = .skip(2);
-        is items.iterated, 2, '.skip(2) reifies two items';
-        isa-ok tail.VAR, Proxy, '...and returns a Proxy';
-        is-deeply tail, series, '...for the original series';
+        subtest '.skip(2)', {
+            my \got = .skip(2);
+            is values.produced, 2, 'reified two values';
+            isa-ok got.VAR, Proxy, 'returned a Proxy';
+            is-deeply got, series, 'The proxy evaluates to the original series';
+        }
     }
 }
 

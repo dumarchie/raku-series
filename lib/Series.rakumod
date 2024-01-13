@@ -2,7 +2,7 @@ use v6.d;
 
 # Define fast decont operator
 proto sub postfix:«<>»(|) {*}
-multi sub postfix:«<>»(Mu \item) { item }
+multi sub postfix:«<>»(Mu \value) { value }
 
 # Define deferred series constructor
 my class Series::Deferred is Proxy {}
@@ -24,37 +24,37 @@ my $Empty := class Series does Iterable {
     # Constructors
     proto method new(|) {*}
     multi method new( --> Series:D) { $Empty }
-    multi method new(Mu \item --> Series:D) {
-        $Empty.insert(item);
+    multi method new(Mu \value --> Series:D) {
+        $Empty.insert(value);
     }
-    multi method new(Slip \items --> Series:D) {
-        $Empty!insert-list(items);
+    multi method new(Slip \values --> Series:D) {
+        $Empty!insert-list(values);
     }
-    multi method new(**@items is raw --> Series:D) {
-        $Empty!insert-list(@items);
+    multi method new(**@values is raw --> Series:D) {
+        $Empty!insert-list(@values);
     }
-    method !insert-list(@items) {
+    method !insert-list(@values) {
         my $self := self;
-        $self := cons($_<>, $self) for @items.reverse;
+        $self := cons($_<>, $self) for @values.reverse;
         $self;
     }
 
-    method insert(Mu \item --> Series:D) {
-        cons(item<>, $Empty);
+    method insert(Mu \value --> Series:D) {
+        cons(value<>, $Empty);
     }
 
     # Concatenation
-    method prepend(Iterable \items) is raw {
-        my \iter = items.iterator;
+    method prepend(Mu \values) is raw {
+        my \iter = values.iterator;
         my \lock = Lock.new;
         my &copy = {
             my $state = {
                 lock.protect({
                     if $state ~~ Callable {
-                        my \item = iter.pull-one;
-                        $state := (item =:= IterationEnd)
+                        my \value = iter.pull-one;
+                        $state := (value =:= IterationEnd)
                           ?? self // $Empty
-                          !! cons(item<>, copy);
+                          !! cons(value<>, copy);
                     }
                     $state;
                 });
@@ -87,6 +87,14 @@ my $Empty := class Series does Iterable {
     multi method raku(::?CLASS:D: --> Str:D) { 'Series.new' }
 }.CREATE;
 
+# To turn any Iterable into a series
+proto sub series(|) {*}
+multi sub series(Series:D \values) { values }
+multi sub series(Series:U) { $Empty }
+multi sub series(Mu \values) is raw {
+    $Empty.prepend(values);
+}
+
 my class Series::Node is Series {
     has $.value;
     has $!next;
@@ -103,17 +111,18 @@ my class Series::Node is Series {
     }
 
     # This public cons operator constrains the next argument
-    sub infix:<::>(Mu \item, Mu \next --> Series:D)
+    sub infix:<::>(Mu \value, Mu \next --> Series:D)
       is assoc<right> is equiv(&infix:<,>) is export
     {
-      next.VAR.WHAT =:= Series::Deferred
-        ?? ::?CLASS.CREATE!SET-SELF(item<>, next)
-        !! (my Series $ := next).insert(item);
+        ::?CLASS.CREATE!SET-SELF(value<>, next.VAR.WHAT =:= Series::Deferred
+          ?? next
+          !! series(next)
+        );
     }
 
     # Object-oriented constructor
-    method insert(::?CLASS:D: Mu \item --> Series:D) {
-        ::?CLASS.CREATE!SET-SELF(item<>, self);
+    method insert(::?CLASS:D: Mu \value --> Series:D) {
+        ::?CLASS.CREATE!SET-SELF(value<>, self);
     }
 
     # Instances of this subclass represent a proper series. Note that the
@@ -157,7 +166,7 @@ my class Series::Node is Series {
 
     # Stringification
     multi method raku(::?CLASS:D: --> Str:D) {
-        "({join ' :: ', self.map(*.raku)} :: Series)";
+        "({join ' :: ', self.map(*.raku)} :: Empty)";
     }
 }
 
@@ -190,25 +199,24 @@ The following operator is exported by default:
 
 =head2 infix ::
 
-    sub infix:<::>(Mu \item, Mu \next --> Series:D)
+    sub infix:<::>(Mu \value, Mu \next --> Series:D)
 
-Constructs a new C<Series> consisting of the decontainerized C<item> followed
-by the values of the potentially deferred C<next> series. This operator is
-right associative, so the following statement is true:
+Constructs a C<Series> that consists of the decontainerized C<value> followed by
+the values produced by the C<next.iterator>. This operator is right associative,
+so the following statement is true:
 
-    (1 :: 2 :: Series) eqv Series.new(1, 2);
+    (1 :: 2 :: Empty) eqv Series.new(1, 2);
 
 Note that the C<::> operator has the same
 L<precedence|https://docs.raku.org/language/operators#Operator_precedence> as
-the C«,» operator, so the following statements are all equivalent and I<invalid>
-because C<False> is not an acceptable right operand:
+the C«,» operator, so the following statements are all equivalent:
 
-    1 :: 2 :: Series eqv Series.new(1, 2);
-    1 :: 2 :: (Series eqv Series.new(1, 2));
+    1 :: 2 :: Empty eqv Series.new(1, 2);
+    1 :: 2 :: (Empty eqv Series.new(1, 2));
     1 :: 2 :: False;
 
 Also note that C<::> must be surrounded by whitespace to distinguish a C<Series>
-from a package name.
+construct from a package name.
 
 =head1 METHODS
 
@@ -223,24 +231,24 @@ values.
 
 Defined as
 
-    method new(**@items --> Series:D)
+    method new(**@values --> Series:D)
 
-Returns the empty series if no items are provided. Otherwise returns a new
-C<Series> consisting of the decontainerized C<@items>.
+Returns the empty series if no values are provided. Otherwise returns a new
+C<Series> consisting of the decontainerized C<@values>.
 
 =head2 method insert
 
-    method insert(Mu \item --> Series:D)
+    method insert(Mu \value --> Series:D)
 
-Returns a new C<Series> consisting of the decontainerized C<item> followed by
+Returns a new C<Series> consisting of the decontainerized C<value> followed by
 the values of the invocant.
 
 =head2 method prepend
 
-    method prepend(Iterable \items) is raw
+    method prepend(Mu \values) is raw
 
-Returns a deferred C<Series> of lazily evaluated, decontainerized C<items>
-followed by the values of the invocant.
+Constructs a deferred C<Series> that consists of the values produced by the
+C<values.iterator> followed by the values of the invocant.
 
 =head2 method elems
 
