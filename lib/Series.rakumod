@@ -1,9 +1,5 @@
 use v6.d;
 
-# Define fast decont operator
-proto sub postfix:«<>»(|) {*}
-multi sub postfix:«<>»(Mu \value) { value }
-
 # Define deferred series constructor
 my class Series::Deferred is Proxy {}
 sub deferred(&init) is raw {
@@ -35,12 +31,12 @@ my $Empty := class Series does Iterable {
     }
     method !insert-list(@values) {
         my $self := self;
-        $self := cons($_<>, $self) for @values.reverse;
+        $self := cons($_, $self) for @values.reverse;
         $self;
     }
 
     method insert(Mu \value --> Series:D) {
-        cons(value<>, $Empty);
+        cons(value, $Empty);
     }
 
     # Concatenation
@@ -54,7 +50,7 @@ my $Empty := class Series does Iterable {
                         my \value = iter.pull-one;
                         $state := (value =:= IterationEnd)
                           ?? self // $Empty
-                          !! cons(value<>, copy);
+                          !! cons(value, copy);
                     }
                     $state;
                 });
@@ -104,25 +100,26 @@ my class Series::Node is Series {
         self;
     }
 
-    # This protected cons function expects the caller to
-    # sanitize the next argument
-    &cons = -> Mu \value, Mu \next {
+    # This protected cons function decontainerizes a writable value
+    &cons = proto sub new(|) {*}
+    multi sub new(Mu \value, Mu \next) {
         ::?CLASS.CREATE!SET-SELF(value, next);
     }
+    multi sub new(Mu $var is rw, Mu \next) {
+        ::?CLASS.CREATE!SET-SELF($var<>, next);
+    }
 
-    # This public cons operator constrains the next argument
+    # This public cons operator coerces the next argument
+    # to a potentially deferred series
     sub infix:<::>(Mu \value, Mu \next --> Series:D)
       is assoc<right> is equiv(&infix:<,>) is export
     {
-        ::?CLASS.CREATE!SET-SELF(value<>, next.VAR.WHAT =:= Series::Deferred
-          ?? next
-          !! series(next)
-        );
+        new(value, next.VAR.WHAT =:= Series::Deferred ?? next !! series(next));
     }
 
     # Object-oriented constructor
     method insert(::?CLASS:D: Mu \value --> Series:D) {
-        ::?CLASS.CREATE!SET-SELF(value<>, self);
+        new(value, self);
     }
 
     # Instances of this subclass represent a proper series. Note that the
@@ -181,9 +178,9 @@ Series - Purely functional, potentially lazy linked lists
     class Series does Iterable {}
 
 C<Series> are strongly immutable linked lists. A series consists of nodes that
-recursively link a I<value>, the C<.head> of the series, to the I<next> node.
-The last node of a series links to the empty series, the only C<Series> object
-instance that evaluates to C<False> in Boolean context.
+recursively link a readonly I<value>, the C<.head> of the series, to the I<next>
+node. The last node of a series links to the empty series, the only C<Series>
+object instance that evaluates to C<False> in Boolean context.
 
 While C<Series> are L<C<Iterable>|https://docs.raku.org/type/Iterable>, they're
 not C<Positional>, so they're not "lists" in the Raku sense of the word. But
@@ -201,9 +198,9 @@ The following operator is exported by default:
 
     sub infix:<::>(Mu \value, Mu \next --> Series:D)
 
-Constructs a C<Series> that consists of the decontainerized C<value> followed by
-the values produced by the C<next.iterator>. This operator is right associative,
-so the following statement is true:
+Constructs a C<Series> that consists of the provided C<value> followed by the
+values produced by the C<next.iterator>. This operator is right associative, so
+the following statement is true:
 
     (1 :: 2 :: Empty) eqv Series.new(1, 2);
 
@@ -234,14 +231,14 @@ Defined as
     method new(**@values --> Series:D)
 
 Returns the empty series if no values are provided. Otherwise returns a new
-C<Series> consisting of the decontainerized C<@values>.
+C<Series> consisting of the provided values.
 
 =head2 method insert
 
     method insert(Mu \value --> Series:D)
 
-Returns a new C<Series> consisting of the decontainerized C<value> followed by
-the values of the invocant.
+Returns a new C<Series> consisting of the provided C<value> followed by the
+values of the invocant.
 
 =head2 method prepend
 
