@@ -56,30 +56,37 @@ my %Traversal = (
   },
 );
 
+proto sub prepend(|) {*}
+multi sub prepend(\series, Int() $n) {
+    benchmark {
+        series.prepend(^$n)
+    }, ".prepend(^$n)";
+}
+multi sub prepend(\series, 'series') {
+    benchmark {
+        series.prepend(series)
+    }, ".prepend(series)";
+}
+
 enum Build     <infix insert new prepend>;
 enum Traversal <elems list skip>;
 constant cores = $*KERNEL.cpu-cores;
+subset what where * ~~ 'series' | Int();
 
 sub MAIN(
-  Int()     :$nodes   = 3E6,   #= number of nodes in the series
-  Build     :$method  = infix, #= method to create the series
+  Build     :$method  = infix, #= method to create the initial series
+  Int()     :$nodes   = 3E6,   #= number of nodes in the initial series
+  what      :$prepend,         #= prepend number of values or series self
   Traversal :$assess  = elems, #= traversal method to assess
   Int       :$workers = cores, #= number of parallel workers
 ) {
     my &build    = %Build{$method};
     my &traverse = %Traversal{$assess};
-    if $workers > 0 {
-        benchmark {
-            my \series = build($nodes);
-            await (^$workers).map: {
-                start traverse(series, :$nodes)
-            };
-        }, 'Total time';
-    }
-    else {
-        benchmark {
-            my \series = build($nodes);
-            traverse(series, :$nodes);
-        }, 'Total time';
-    }
+    benchmark {
+        my $series := $nodes > 0 ?? build($nodes) !! Series.new;
+        $series := prepend($series, $_) with $prepend;
+        $workers > 0 ?? await (^$workers).map: {
+            start traverse($series, :$nodes)
+        } !! traverse($series, :$nodes);
+    }, 'Total time';
 }
