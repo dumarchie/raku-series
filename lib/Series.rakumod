@@ -45,7 +45,14 @@ my $Empty := class Series does Iterable {
 
     # Concatenation
     method prepend(Mu \values) is raw {
-        my \iter = values.iterator;
+        my \tail = self // $Empty;
+        values.VAR.WHAT =:= Series::Deferred
+          ?? deferred concat-series values, tail
+          !! concat(values, tail);
+    }
+    proto sub concat(|) {*}
+    multi sub concat(Mu \head, \tail) is raw {
+        my \iter = head.iterator;
         my \lock = Lock.new;
         my &copy = {
             my $state = {
@@ -53,7 +60,7 @@ my $Empty := class Series does Iterable {
                     if $state ~~ Callable {
                         my \value = iter.pull-one;
                         $state := (value =:= IterationEnd)
-                          ?? self // $Empty
+                          ?? tail
                           !! cons(value<>, copy);
                     }
                     $state;
@@ -61,6 +68,22 @@ my $Empty := class Series does Iterable {
             };
         };
         deferred copy;
+    }
+    multi sub concat(Series:D \head, \tail) is raw {
+        deferred concat-series head, tail;
+    }
+    sub concat-series(Mu \head, \tail) is raw {
+        my &copy = -> \source {
+            my $state = my \todo = {
+                my \series = (my \node = source.())
+                  ?? cons(node.head, copy node.skip)
+                  !! tail;
+
+                my \seen = cas $state, todo, series;
+                seen =:= todo ?? series !! seen;
+            };
+        };
+        copy head;
     }
 
     # This base class represents the empty series. Both the type object and

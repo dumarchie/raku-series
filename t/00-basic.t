@@ -158,6 +158,15 @@ subtest 'method prepend', {
             is-deeply got, series, 'The proxy evaluates to the original series';
         }
     }
+
+    subtest 'Series.prepend(series)', {
+        my \values = Producer.new(last => 2);
+        my \series = Series.prepend(values);
+        $_ := Series.prepend(series);
+        isa-ok .VAR, Proxy, 'Series.prepend(series) returns a Proxy';
+        is values.produced, 0, 'The provided series is not iterated';
+        is-deeply .values, (1, 2), '.values returns series.values';
+    }
 }
 
 done-testing;
