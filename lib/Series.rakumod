@@ -47,39 +47,39 @@ my $Empty := class Series does Iterable {
     method prepend(Mu \values) is raw {
         my \tail = self // $Empty;
         values.VAR.WHAT =:= Series::Deferred
-          ?? deferred concat-series values, tail
+          ?? deferred concatenation values, tail
           !! concat(values, tail);
     }
     proto sub concat(|) {*}
     multi sub concat(Mu \head, \tail) is raw {
-        my \iter = head.iterator;
-        my \lock = Lock.new;
-        my &copy = {
-            my $state = {
+        my \iterator = head.iterator;
+        my &producer = {
+            my \lock = Lock.new; # one for every iteration, to reduce contention
+            my $next = {
                 lock.protect({
-                    if $state ~~ Callable {
-                        my \value = iter.pull-one;
-                        $state := (value =:= IterationEnd)
+                    unless $next.VAR =:= $next {
+                        my \value = iterator.pull-one;
+                        $next := (value =:= IterationEnd)
                           ?? tail
-                          !! cons(value<>, copy);
+                          !! cons(value<>, producer);
                     }
-                    $state;
                 });
+                $next;
             };
         };
-        deferred copy;
+        deferred producer;
     }
     multi sub concat(Series:D \head, \tail) is raw {
-        deferred concat-series head, tail;
+        deferred concatenation head, tail;
     }
-    sub concat-series(Mu \head, \tail) is raw {
+    sub concatenation(Mu \head, \tail) is raw {
         my &copy = -> \source {
-            my $state = my \todo = {
+            my $next = my \todo = {
                 my \series = (my \node = source.())
                   ?? cons(node.head, copy node.skip)
                   !! tail;
 
-                my \seen = cas $state, todo, series;
+                my \seen = cas $next, todo, series;
                 seen =:= todo ?? series !! seen;
             };
         };
