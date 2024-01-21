@@ -50,21 +50,22 @@ my $Empty := class Series does Iterable {
           ?? deferred concatenation values, tail
           !! concat(values, tail);
     }
+
     proto sub concat(|) {*}
     multi sub concat(Mu \head, \tail) is raw {
         my \iterator = head.iterator;
         my &producer = {
-            my \lock = Lock.new; # one for every iteration, to reduce contention
+            my $series := my \lock = Lock.new;
             my $next = {
                 lock.protect({
-                    unless $next.VAR =:= $next {
+                    if $series =:= lock {
                         my \value = iterator.pull-one;
-                        $next := (value =:= IterationEnd)
+                        $next = $series := (value =:= IterationEnd)
                           ?? tail
                           !! cons(value<>, producer);
                     }
                 });
-                $next;
+                $series;
             };
         };
         deferred producer;
@@ -72,6 +73,7 @@ my $Empty := class Series does Iterable {
     multi sub concat(Series:D \head, \tail) is raw {
         deferred concatenation head, tail;
     }
+
     sub concatenation(Mu \head, \tail) is raw {
         my &copy = -> Mu \source {
             my $next = my \todo = {
