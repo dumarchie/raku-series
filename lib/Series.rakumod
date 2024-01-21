@@ -16,7 +16,7 @@ sub deferred(&init) is raw {
 
 # To be defined when class Series has been defined:
 my &cons; # protected Series::Node constructor
-
+my &next; # protected $!next attribute accessor
 my $Empty := class Series does Iterable {
     # In case another thread has concurrently replaced a Callable with a Series
     method CALL-ME() { self }
@@ -73,10 +73,10 @@ my $Empty := class Series does Iterable {
         deferred concatenation head, tail;
     }
     sub concatenation(Mu \head, \tail) is raw {
-        my &copy = -> \source {
+        my &copy = -> Mu \source {
             my $next = my \todo = {
                 my \series = (my \node = source.())
-                  ?? cons(node.head, copy node.skip)
+                  ?? cons(node.head, copy next node)
                   !! tail;
 
                 my \seen = cas $next, todo, series;
@@ -174,6 +174,8 @@ my class Series::Node is Series {
     method next(::?CLASS:D: --> Series:D) {
         $!next.VAR =:= $!next ?? $!next !! ($!next := $!next());
     }
+
+    &next = method () is raw { $!next }
 
     multi method skip(::?CLASS:D:) is raw {
         $!next.VAR =:= $!next ?? $!next !! deferred { $!next := $!next() };
