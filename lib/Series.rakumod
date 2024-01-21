@@ -164,11 +164,17 @@ my class Series::Node is Series {
 
     method iterator(::?CLASS:D: --> Iterator:D) {
         class :: does Iterator {
-            has $.node;
+            has $.series;
             method pull-one() {
-                ($!node := $!node.next) ?? $!node.value !! IterationEnd;
+                if my \node = $!series() {
+                    $!series := next node;
+                    node.value;
+                }
+                else {
+                    IterationEnd;
+                }
             }
-        }.new(node => cons(Nil, self));
+        }.new(series => self);
     }
 
     method next(::?CLASS:D: --> Series:D) {
